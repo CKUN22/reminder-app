@@ -1,0 +1,33 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.ckun.reminder'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.ckun.reminder'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'junit:junit:4.13.2'
+}
+
+tasks.register('compileReminderRuleTests', JavaCompile) {
+    source = files('src/main/java/com/ckun/reminder/Task.java', 'src/main/java/com/ckun/reminder/ReminderRules.java', '../tests/ReminderRulesTest.java')
+    classpath = files()
+    destinationDirectory = layout.buildDirectory.dir('rule-tests')
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+    options.encoding = 'UTF-8'
+}
+tasks.register('testReminderRules', JavaExec) {
+    dependsOn 'compileReminderRuleTests'
+    classpath = files(layout.buildDirectory.dir('rule-tests'))
+    mainClass = 'com.ckun.reminder.ReminderRulesTest'
+}
+tasks.named('check') { dependsOn 'testReminderRules' }
