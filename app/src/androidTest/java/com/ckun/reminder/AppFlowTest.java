@@ -14,6 +14,22 @@ import java.io.FileOutputStream;
 import java.util.*;
 
 public class AppFlowTest {
+    @Test public void backReturnsDirectlyWithoutSavingDraft() {
+        Activity activity = instrumentation.startActivitySync(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        try {
+            int before; try (TaskStore store = new TaskStore(context)) { before = store.all().size(); }
+            click(activity, "＋  新建待办");
+            instrumentation.runOnMainSync(() -> {
+                for (View v : all(activity.getWindow().getDecorView())) if (v instanceof EditText) { ((EditText) v).setText("未保存草稿"); break; }
+            });
+            click(activity, "‹  返回列表");
+            click(activity, "＋  新建待办");
+            instrumentation.runOnMainSync(activity::onBackPressed);
+            instrumentation.waitForIdleSync();
+            instrumentation.runOnMainSync(() -> assertTrue(all(activity.getWindow().getDecorView()).stream().anyMatch(v -> v instanceof Button && ((Button) v).getText().toString().equals("＋  新建待办"))));
+            try (TaskStore store = new TaskStore(context)) { assertEquals(before, store.all().size()); }
+        } finally { instrumentation.runOnMainSync(activity::finish); }
+    }
     private final Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
     private final Context context = instrumentation.getTargetContext();
     private List<View> all(View view) {

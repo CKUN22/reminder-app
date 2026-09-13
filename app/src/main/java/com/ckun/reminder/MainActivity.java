@@ -260,7 +260,7 @@ public final class MainActivity extends Activity {
         if (requestCode == 10 && scheduler.notificationsAllowed() && !scheduler.exactAllowed()) permissions();
     }
     private void leaveEditor() {
-        new AlertDialog.Builder(this).setTitle("离开编辑？").setMessage("尚未保存的修改将被放弃。").setNegativeButton("继续编辑", null).setPositiveButton("离开", (d, w) -> showList()).show();
+        showList();
     }
     @Override public void onBackPressed() { if (editing) leaveEditor(); else super.onBackPressed(); }
 }
