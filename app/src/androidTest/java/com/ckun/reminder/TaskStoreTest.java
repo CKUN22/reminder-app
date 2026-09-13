@@ -38,4 +38,18 @@ public class TaskStoreTest {
             assertTrue(store.get(t.id).done);
         }
     }
+    @Test public void migrationPreservesLegacyRemindersAndCustomSelections() {
+        try (android.database.sqlite.SQLiteDatabase db = getContext().openOrCreateDatabase("tasks.db", 0, null)) {
+            db.execSQL("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, note TEXT NOT NULL, start INTEGER NOT NULL, duration INTEGER NOT NULL, ten INTEGER NOT NULL, day INTEGER NOT NULL, done INTEGER NOT NULL, revision INTEGER NOT NULL)");
+            db.execSQL("INSERT INTO tasks VALUES (1, '旧事项', '', 2000000000000, 30, 1, 1, 0, 3)"); db.setVersion(1);
+        }
+        try (TaskStore store = new TaskStore(getContext())) {
+            Task task = store.get(1); assertEquals(new java.util.TreeSet<>(java.util.List.of(0, 10, 1440)), task.reminders());
+            task.reminderMinutes = new java.util.TreeSet<>(java.util.List.of(15, 75, 2880)); store.save(task);
+        }
+        try (TaskStore store = new TaskStore(getContext())) {
+            Task task = store.get(1); assertEquals(new java.util.TreeSet<>(java.util.List.of(15, 75, 2880)), task.reminders());
+            task.reminderMinutes.clear(); store.save(task); assertTrue(store.get(1).reminders().isEmpty());
+        }
+    }
 }

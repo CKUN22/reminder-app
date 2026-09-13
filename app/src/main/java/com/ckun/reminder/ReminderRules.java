@@ -4,15 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ReminderRules {
-    public static final long[] OFFSETS = {0, 10 * 60_000L, 24 * 60 * 60_000L};
     private ReminderRules() {}
-    public static List<Integer> pending(Task task, long now) {
+    public static String reminderLabel(int minutes) {
+        if (minutes == 0) return "日程发生时";
+        if (minutes % 1440 == 0) return (minutes / 1440) + " 天前";
+        if (minutes % 60 == 0) return (minutes / 60) + " 小时前";
+        return minutes + " 分钟前";
+    }
+    public static List<Integer> pendingMinutes(Task task, long now) {
         List<Integer> result = new ArrayList<>();
-        if (task.done) return result;
-        for (int i = 0; i < OFFSETS.length; i++) {
-            if ((i == 0 || (i == 1 && task.earlyTen) || (i == 2 && task.earlyDay))
-                    && task.start - OFFSETS[i] > now) result.add(i);
-        }
+        if (!task.done) for (int minutes : task.reminders()) if (task.start - minutes * 60_000L > now) result.add(minutes);
         return result;
     }
     public static long end(Task task) { return Math.addExact(task.start, task.duration * 60_000L); }

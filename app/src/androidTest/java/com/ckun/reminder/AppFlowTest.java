@@ -45,13 +45,21 @@ public class AppFlowTest {
                 List<EditText> inputs = new ArrayList<>(); List<CheckBox> options = new ArrayList<>();
                 for (View v : all(activity.getWindow().getDecorView())) { if (v instanceof EditText) inputs.add((EditText) v); if (v instanceof CheckBox) options.add((CheckBox) v); }
                 assertEquals(3, inputs.size()); inputs.get(0).setText("读半小时书"); inputs.get(1).setText("读完第二章，记下一个有趣的想法。"); inputs.get(2).setText("30");
-                assertTrue(options.get(0).isEnabled()); assertFalse(options.get(1).isEnabled()); options.get(0).setChecked(true);
+                assertEquals(0, options.size());
                 activity.getWindow().getDecorView().clearFocus();
             });
+            Instrumentation.ActivityMonitor monitor = instrumentation.addMonitor(ReminderSettingsActivity.class.getName(), null, false);
+            instrumentation.runOnMainSync(() -> activity.getWindow().getDecorView().findViewWithTag("reminder-settings").performClick());
+            Activity settings = instrumentation.waitForMonitorWithTimeout(monitor, 5000); assertNotNull(settings); instrumentation.removeMonitor(monitor);
+            instrumentation.runOnMainSync(() -> {
+                CheckBox ten = settings.getWindow().getDecorView().findViewWithTag("reminder-10"); ten.setChecked(true);
+                assertFalse(settings.getWindow().getDecorView().findViewWithTag("reminder-1440").isEnabled());
+                settings.getWindow().getDecorView().findViewWithTag("reminders-back").performClick();
+            }); instrumentation.waitForIdleSync();
             screenshot("editor.png"); click(activity, "保存事项");
             try (TaskStore store = new TaskStore(context)) {
                 assertEquals(1, store.all().size()); Task t = store.all().get(0);
-                assertEquals("读半小时书", t.title); assertEquals(30, t.duration); assertTrue(t.earlyTen); assertFalse(t.earlyDay);
+                assertEquals("读半小时书", t.title); assertEquals(30, t.duration); assertTrue(t.reminders().contains(10)); assertFalse(t.reminders().contains(1440));
             }
             screenshot("list.png");
             instrumentation.runOnMainSync(() -> {
@@ -71,6 +79,10 @@ public class AppFlowTest {
             click(activity, "✓  标记完成");
             try (TaskStore store = new TaskStore(context)) { assertTrue(store.all().get(0).done); }
             click(activity, "已完成"); screenshot("completed.png");
+            instrumentation.runOnMainSync(() -> {
+                for (View v : all(activity.getWindow().getDecorView())) if (v instanceof TextView && ((TextView) v).getText().toString().equals("读半小时书")) { ((View) v.getParent()).performClick(); return; }
+            }); instrumentation.waitForIdleSync(); click(activity, "改为未完成");
+            try (TaskStore store = new TaskStore(context)) { assertFalse(store.all().get(0).done); assertTrue(store.all().get(0).reminders().contains(10)); }
         } finally { instrumentation.runOnMainSync(activity::finish); }
     }
     @Test public void systemAlarmDeliversAndCompletionCancelsNotification() throws Exception {

@@ -15,17 +15,17 @@ public final class ReminderReceiver extends BroadcastReceiver {
             if ("COMPLETE".equals(intent.getAction())) {
                 t.done = true; store.save(t); scheduler.cancel(t); return;
             }
-            int kind = intent.getIntExtra("kind", -1);
-            if (kind < 0 || kind > 2 || (kind == 1 && !t.earlyTen) || (kind == 2 && !t.earlyDay)) return;
+            int kind = intent.getIntExtra("minutes", -1);
+            if (!t.reminders().contains(kind)) return;
             // A queued broadcast from a replaced alarm must not fire before the new time.
-            if (System.currentTimeMillis() < t.start - ReminderRules.OFFSETS[kind]) return;
+            if (System.currentTimeMillis() < t.start - kind * 60_000L) return;
             if (!scheduler.notificationsAllowed()) return;
             Intent open = new Intent(context, MainActivity.class).setData(Uri.parse("qingdan://task/" + t.id)).putExtra("id", t.id);
             PendingIntent content = PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             Intent complete = new Intent(context, ReminderReceiver.class).setAction("COMPLETE")
                     .setData(Uri.parse("qingdan://complete/" + t.id)).putExtra("id", t.id).putExtra("revision", t.revision);
             PendingIntent action = PendingIntent.getBroadcast(context, 0, complete, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            String prefix = kind == 0 ? "现在开始" : kind == 1 ? "提前 10 分钟提醒" : "提前 1 天提醒";
+            String prefix = kind == 0 ? "现在开始" : ReminderRules.reminderLabel(kind) + "提醒";
             String time = new SimpleDateFormat("M月d日 HH:mm", Locale.CHINA).format(new Date(t.start));
             Notification notification = new Notification.Builder(context, ReminderScheduler.CHANNEL)
                     .setSmallIcon(R.drawable.ic_notification).setContentTitle(t.title)

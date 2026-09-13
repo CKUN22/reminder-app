@@ -8,5 +8,11 @@
         <item name="android:windowActionModeOverlay">true</item>
     </style>
     <style name="AppTheme" parent="AppThemeBase" />
-    <string name="expired_reminder">%1$s · 时间已过</string>
+    <style name="TimeSelectorTheme" parent="android:style/Theme.Material.Light.Dialog.NoActionBar">
+        <item name="android:colorAccent">#0068FF</item>
+        <item name="android:windowMinWidthMajor">0dp</item>
+        <item name="android:windowMinWidthMinor">0dp</item>
+        <item name="android:windowSoftInputMode">stateAlwaysHidden</item>
+    </style>
+    <string name="reminder_count">已设置 %1$d 个提醒</string>
 </resources>

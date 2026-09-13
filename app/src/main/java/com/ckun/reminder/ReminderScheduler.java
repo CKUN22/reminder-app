@@ -23,8 +23,8 @@ public final class ReminderScheduler {
     }
     private PendingIntent alarm(Task t, int kind) {
         Intent intent = new Intent(context, ReminderReceiver.class).setAction("REMIND")
-                .setData(Uri.parse("qingdan://alarm/" + t.id + "/" + kind))
-                .putExtra("id", t.id).putExtra("kind", kind).putExtra("revision", t.revision);
+                .setData(Uri.parse("qingdan://reminder/" + t.id + "/" + kind))
+                .putExtra("id", t.id).putExtra("minutes", kind).putExtra("revision", t.revision);
         return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
     public void cancel(Task t) {
@@ -32,15 +32,20 @@ public final class ReminderScheduler {
         context.getSystemService(NotificationManager.class).cancel("task-" + t.id, 0);
     }
     private void cancelAlarms(Task t) {
-        for (int kind = 0; kind < 3; kind++) alarms.cancel(alarm(t, kind));
+        for (int minutes : t.reminders()) alarms.cancel(alarm(t, minutes));
+        for (int kind = 0; kind < 3; kind++) {
+            Intent old = new Intent(context, ReminderReceiver.class).setAction("REMIND").setData(Uri.parse("qingdan://alarm/" + t.id + "/" + kind));
+            PendingIntent pending = PendingIntent.getBroadcast(context, 0, old, PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
+            if (pending != null) { alarms.cancel(pending); pending.cancel(); }
+        }
     }
     public void schedule(Task t) {
         cancel(t);
         scheduleFuture(t);
     }
     private void scheduleFuture(Task t) {
-        for (int kind : ReminderRules.pending(t, System.currentTimeMillis())) {
-            long at = t.start - ReminderRules.OFFSETS[kind];
+        for (int kind : ReminderRules.pendingMinutes(t, System.currentTimeMillis())) {
+            long at = t.start - kind * 60_000L;
             PendingIntent pending = alarm(t, kind);
             try {
                 if (exactAllowed()) alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);

@@ -13,17 +13,17 @@ public final class ReminderRulesTest {
     public static void main(String[] args) {
         long now = Instant.parse("2026-09-13T10:00:00Z").toEpochMilli();
         Task t = new Task(); t.title = "读书"; t.start = now + 2 * 86400000L; t.earlyTen = true; t.earlyDay = true;
-        equal(List.of(0, 1, 2), ReminderRules.pending(t, now));
+        equal(List.of(0, 10, 1440), ReminderRules.pendingMinutes(t, now));
         t.start = now + 600000L;
-        equal(List.of(0), ReminderRules.pending(t, now)); // Equality is already expired.
+        equal(List.of(0), ReminderRules.pendingMinutes(t, now)); // Equality is already expired.
         t.start = now + 600001L;
-        equal(List.of(0, 1), ReminderRules.pending(t, now));
-        t.start = now; equal(List.of(), ReminderRules.pending(t, now));
-        t.start = now - 1; equal(List.of(), ReminderRules.pending(t, now));
+        equal(List.of(0, 10), ReminderRules.pendingMinutes(t, now));
+        t.start = now; equal(List.of(), ReminderRules.pendingMinutes(t, now));
+        t.start = now - 1; equal(List.of(), ReminderRules.pendingMinutes(t, now));
         t.start = now + 2 * 86400000L; t.done = true;
-        equal(List.of(), ReminderRules.pending(t, now));
+        equal(List.of(), ReminderRules.pendingMinutes(t, now));
         t.done = false; t.earlyTen = false; t.earlyDay = false;
-        equal(List.of(0), ReminderRules.pending(t, now));
+        equal(List.of(0), ReminderRules.pendingMinutes(t, now));
         t.start = Instant.parse("2026-09-13T23:45:00Z").toEpochMilli(); t.duration = 30;
         equal(Instant.parse("2026-09-14T00:15:00Z").toEpochMilli(), ReminderRules.end(t));
         t.duration = 0; equal(t.start, ReminderRules.end(t));
@@ -35,8 +35,15 @@ public final class ReminderRulesTest {
         t.duration = 525600; equal(true, ReminderRules.validate(t, now, true) == null);
         // Moving an event recomputes every reminder relative to the new start.
         t.duration = 30; t.earlyDay = true; t.start = now + 86400001L;
-        equal(List.of(0, 2), ReminderRules.pending(t, now));
-        t.start -= 2; equal(List.of(0), ReminderRules.pending(t, now));
+        equal(List.of(0, 1440), ReminderRules.pendingMinutes(t, now));
+        t.start -= 2; equal(List.of(0), ReminderRules.pendingMinutes(t, now));
+        t.reminderMinutes = new java.util.TreeSet<>(List.of(15, 30, 75, 1440)); t.start = now + 3600000;
+        equal(List.of(15, 30), ReminderRules.pendingMinutes(t, now));
+        t.done = true; equal(List.of(), ReminderRules.pendingMinutes(t, now));
+        t.done = false; equal(List.of(15, 30), ReminderRules.pendingMinutes(t, now));
+        t.reminderMinutes.clear(); equal(List.of(), ReminderRules.pendingMinutes(t, now));
+        equal("日程发生时", ReminderRules.reminderLabel(0)); equal("2 天前", ReminderRules.reminderLabel(2880));
+        equal("75 分钟前", ReminderRules.reminderLabel(75));
         System.out.println("PASS: " + assertions + " reminder rule assertions");
     }
 }
