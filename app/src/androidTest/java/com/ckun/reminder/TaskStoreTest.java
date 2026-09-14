@@ -16,11 +16,11 @@ public class TaskStoreTest {
         long id;
         try (TaskStore store = new TaskStore(getContext())) {
             Task t = new Task(); t.title = "读书"; t.note = "第二章"; t.start = System.currentTimeMillis() + 3600000;
-            t.duration = 30; t.earlyTen = true; store.save(t); id = t.id;
+            t.priority = 0; t.duration = 30; t.earlyTen = true; store.save(t); id = t.id;
         }
         try (TaskStore store = new TaskStore(getContext())) {
             Task t = store.get(id); assertEquals("读书", t.title); assertEquals("第二章", t.note);
-            assertEquals(30, t.duration); assertTrue(t.earlyTen); assertFalse(t.done);
+            assertEquals(0, t.priority); assertEquals(30, t.duration); assertTrue(t.earlyTen); assertFalse(t.done);
             long revision = t.revision; t.title = "散步"; t.start += 86400000; store.save(t);
             assertEquals(revision + 1, store.get(id).revision); assertEquals("散步", store.get(id).title);
             t.done = true; store.save(t); assertTrue(store.get(id).done);
@@ -44,7 +44,7 @@ public class TaskStoreTest {
             db.execSQL("INSERT INTO tasks VALUES (1, '旧事项', '', 2000000000000, 30, 1, 1, 0, 3)"); db.setVersion(1);
         }
         try (TaskStore store = new TaskStore(getContext())) {
-            Task task = store.get(1); assertEquals(new java.util.TreeSet<>(java.util.List.of(0, 10, 1440)), task.reminders());
+            Task task = store.get(1); assertEquals(3, task.priority); assertEquals(new java.util.TreeSet<>(java.util.List.of(0, 10, 1440)), task.reminders());
             task.reminderMinutes = new java.util.TreeSet<>(java.util.List.of(15, 75, 2880)); store.save(task);
         }
         try (TaskStore store = new TaskStore(getContext())) {
@@ -52,4 +52,16 @@ public class TaskStoreTest {
             task.reminderMinutes.clear(); store.save(task); assertTrue(store.get(1).reminders().isEmpty());
         }
     }
+    @Test public void versionTwoMigrationPreservesDataAndAllPriorities() {
+        try (android.database.sqlite.SQLiteDatabase db = getContext().openOrCreateDatabase("tasks.db", 0, null)) {
+            db.execSQL("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, note TEXT NOT NULL, start INTEGER NOT NULL, duration INTEGER NOT NULL, ten INTEGER NOT NULL, day INTEGER NOT NULL, done INTEGER NOT NULL, revision INTEGER NOT NULL, reminder_offsets TEXT)");
+            db.execSQL("INSERT INTO tasks VALUES (1, '旧事项', '备注', 2000000000000, 30, 0, 0, 1, 3, '15,75')"); db.setVersion(2);
+        }
+        try (TaskStore store = new TaskStore(getContext())) {
+            Task task = store.get(1); assertEquals(3, task.priority); assertTrue(task.done); assertEquals("备注", task.note);
+            assertEquals(new java.util.TreeSet<>(java.util.List.of(15, 75)), task.reminders());
+            for (int i = 0; i < 4; i++) { task.priority = i; store.save(task); assertEquals(i, store.get(1).priority); }
+        }
+    }
+
 }

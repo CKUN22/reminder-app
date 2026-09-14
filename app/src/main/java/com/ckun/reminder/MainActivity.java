@@ -17,6 +17,8 @@ import java.util.*;
 
 public final class MainActivity extends Activity {
     private static final int BG = 0xffF7F8F2, INK = 0xff27332B, MUTED = 0xff758073, GREEN = 0xff52694D;
+    private long selectedDay = System.currentTimeMillis();
+    private boolean weekMode;
     private LinearLayout page;
     private ScrollView scroll;
     private FrameLayout screen;
@@ -48,10 +50,12 @@ public final class MainActivity extends Activity {
         scheduler.restore();
         if (state != null) {
             completedTab = state.getBoolean("tab");
+            selectedDay = state.getLong("selectedDay", selectedDay); weekMode = state.getBoolean("weekMode");
             if (state.getBoolean("editing")) {
                 Task t = new Task(); t.id = state.getLong("id"); t.start = state.getLong("start");
                 t.title = state.getString("title", ""); t.note = state.getString("note", "");
                 t.earlyTen = state.getBoolean("ten"); t.earlyDay = state.getBoolean("day");
+                t.priority = state.getInt("priority", 3);
                 t.done = state.getBoolean("done"); t.revision = state.getLong("revision");
                 if (state.containsKey("reminders")) { t.reminderMinutes = new TreeSet<>(); for (int n : state.getIntArray("reminders")) t.reminderMinutes.add(n); }
                 showEditor(t); originalStart = state.getLong("original");
@@ -77,10 +81,10 @@ public final class MainActivity extends Activity {
     @Override protected void onPause() { super.onPause(); handler.removeCallbacks(tick); }
     @Override protected void onDestroy() { if (startTimeDialog != null) startTimeDialog.dismiss(); store.close(); super.onDestroy(); }
     @Override protected void onSaveInstanceState(Bundle out) {
-        super.onSaveInstanceState(out); out.putBoolean("tab", completedTab); out.putBoolean("editing", editing);
+        super.onSaveInstanceState(out); out.putLong("selectedDay", selectedDay); out.putBoolean("weekMode", weekMode); out.putBoolean("tab", completedTab); out.putBoolean("editing", editing);
         if (startTimeDialog != null && startTimeDialog.isShowing()) out.putBundle("timePicker", startTimeDialog.selectionState());
         if (editing) {
-            out.putLong("id", draft.id); out.putLong("start", draft.start); out.putLong("original", originalStart);
+            out.putInt("priority", draft.priority); out.putLong("id", draft.id); out.putLong("start", draft.start); out.putLong("original", originalStart);
             out.putLong("revision", draft.revision); out.putBoolean("done", draft.done);
             out.putString("title", titleInput.getText().toString()); out.putString("note", noteInput.getText().toString());
             out.putString("duration", durationInput.getText().toString()); out.putIntArray("reminders", draft.reminders().stream().mapToInt(Integer::intValue).toArray());
@@ -118,8 +122,7 @@ public final class MainActivity extends Activity {
         editing = false; shell();
         taskTimeLabels.clear();
         page.setPadding(dp(24), dp(20), dp(24), dp(104));
-        page.addView(text("轻待办  /  OFFLINE", 12, GREEN));
-        TextView heading = text("留点时间，做好小事", 30, INK); heading.setTypeface(null, Typeface.BOLD); page.addView(heading);
+        TextView heading = text("轻待办", 34, INK); heading.setTypeface(null, Typeface.BOLD); page.addView(heading);
         dateLabel = text(today(), 14, MUTED); page.addView(dateLabel); gap(18);
         LinearLayout tabs = new LinearLayout(this);
         Button pending = button("未完成", !completedTab, () -> { completedTab = false; showList(); });
@@ -131,33 +134,58 @@ public final class MainActivity extends Activity {
             String warning = !scheduler.notificationsAllowed() ? "通知未开启 · 点此设置提醒权限" : "精确提醒未开启 · 提醒可能延迟";
             Button banner = button(warning, false, this::permissions); banner.setTextSize(13); page.addView(banner); gap(16);
         }
-        List<Task> tasks = store.all(); int count = 0;
+        List<Task> tasks = store.all();
+        page.addView(new AgendaCalendar(this, selectedDay, weekMode, completedTab, tasks, (day, week) -> { selectedDay = day; weekMode = week; showList(); }));
+        scroll.removeView(page); screen.removeView(scroll);
+        LinearLayout layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
+        screen.addView(layout, new FrameLayout.LayoutParams(-1, -1));
+        page.setPadding(dp(20), dp(8), dp(20), 0); layout.addView(page, new LinearLayout.LayoutParams(-1, -2));
+        page = new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(20), dp(8), dp(20), dp(100));
+        scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.addView(page);
+        layout.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        int count = 0;
         displayedTasks = tasks;
-        for (Task t : tasks) if (t.done == completedTab) count++;
-        page.addView(text(completedTab ? "已完成 · " + count : "接下来的安排 · " + count, 13, MUTED)); gap(8);
+        for (Task t : tasks) if (t.done == completedTab && AgendaCalendar.sameDay(t.start, selectedDay)) count++;
+        page.addView(text(new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date(selectedDay)) + (completedTab ? " · 已完成 " : " · 日程 ") + count, 15, INK)); gap(8);
         if (count == 0) {
             LinearLayout empty = new LinearLayout(this); empty.setOrientation(LinearLayout.VERTICAL); empty.setPadding(dp(24), dp(40), dp(24), dp(40)); empty.setBackground(shape(Color.WHITE, 24));
             TextView mark = text("✓", 44, GREEN); mark.setGravity(Gravity.CENTER); empty.addView(mark);
-            TextView label = text(completedTab ? "每一件完成，都值得记录" : "给下一件小事留个位置", 18, INK); label.setGravity(Gravity.CENTER); empty.addView(label);
-            TextView help = text(completedTab ? "完成的事项会出现在这里" : "添加开始时间，让提醒替你记住", 13, MUTED); help.setGravity(Gravity.CENTER); empty.addView(help); page.addView(empty);
+            TextView label = text(completedTab ? "每一件完成，都值得记录" : "这一天暂无待办", 18, INK); label.setGravity(Gravity.CENTER); empty.addView(label);
+            TextView help = text(completedTab ? "这一天完成的事项会出现在这里" : "添加开始时间，让提醒替你记住", 13, MUTED); help.setGravity(Gravity.CENTER); empty.addView(help); page.addView(empty);
         }
         for (Task t : tasks) {
-            if (t.done != completedTab) continue;
+            if (t.done != completedTab || !AgendaCalendar.sameDay(t.start, selectedDay)) continue;
             LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(18), dp(14), dp(18), dp(14)); card.setBackground(shape(Color.WHITE, 20));
+            LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
+            int priorityColor = Task.PRIORITY_COLORS[t.priorityIndex()];
+            View stripe = new View(this); stripe.setBackground(shape(priorityColor, 3));
+            LinearLayout.LayoutParams stripeParams = new LinearLayout.LayoutParams(dp(4), dp(64)); stripeParams.rightMargin = dp(4); row.addView(stripe, stripeParams);
+            row.addView(card, new LinearLayout.LayoutParams(0, -2, 1));
+            row.setPadding(dp(12), dp(4), dp(10), dp(4)); row.setBackground(shape(Color.WHITE, 20));
+            TextView type = text(Task.PRIORITY_LABELS[t.priorityIndex()], 12, priorityColor); card.addView(type);
             TextView time = text("", 13, GREEN); time.setTag("task-time-" + t.id); taskTimeLabels.put(t.id, time); updateTaskTime(t, time); card.addView(time);
             TextView title = text(t.title, 20, INK); title.setTypeface(null, Typeface.BOLD); card.addView(title);
             if (t.duration > 0) card.addView(text("预计 " + t.duration + " 分钟 · 至 " + format(ReminderRules.end(t)), 13, MUTED));
             if (!t.note.isEmpty()) { TextView note = text(t.note, 14, MUTED); note.setMaxLines(2); note.setEllipsize(TextUtils.TruncateAt.END); card.addView(note); }
             card.setOnClickListener(v -> showEditor(store.get(t.id)));
-            if (!t.done) { Button finish = button("✓  标记完成", false, () -> complete(t)); card.addView(finish); }
-            page.addView(card); gap(12);
+            if (!t.done) {
+                Button finish = button("✓", false, () -> complete(t)); finish.setTag("complete-" + t.id); finish.setContentDescription("标记完成：" + t.title);
+                finish.setTextSize(24); finish.setMinWidth(0); finish.setMinHeight(0); finish.setPadding(0, 0, 0, 0);
+                GradientDrawable circle = shape(Color.WHITE, 24); circle.setStroke(dp(2), priorityColor); finish.setBackground(circle); finish.setTextColor(priorityColor);
+                row.addView(finish, new LinearLayout.LayoutParams(dp(48), dp(48)));
+            }
+            page.addView(row); gap(12);
         }
         ImageButton add = new ImageButton(this); add.setTag("add-task"); add.setContentDescription("新建待办");
         add.setImageResource(R.drawable.ic_add); add.setPadding(dp(18), dp(18), dp(18), dp(18));
         add.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33FFFFFF), shape(GREEN, 32), null));
         add.setElevation(dp(6));
         add.setOnClickListener(v -> {
-            Task t = new Task(); t.start = ((System.currentTimeMillis() / 60_000) + 30) * 60_000; showEditor(t);
+            Task t = new Task(); t.start = ((System.currentTimeMillis() / 60_000) + 30) * 60_000;
+            if (!AgendaCalendar.sameDay(selectedDay, System.currentTimeMillis()) && selectedDay > System.currentTimeMillis()) {
+                Calendar date = Calendar.getInstance(); date.setTimeInMillis(selectedDay); date.set(Calendar.HOUR_OF_DAY, 9); date.set(Calendar.MINUTE, 0); date.set(Calendar.SECOND, 0); t.start = date.getTimeInMillis();
+            }
+            showEditor(t);
         });
         FrameLayout.LayoutParams floating = new FrameLayout.LayoutParams(dp(60), dp(60), Gravity.RIGHT | Gravity.BOTTOM);
         floating.rightMargin = dp(24); floating.bottomMargin = dp(24); screen.addView(add, floating);
@@ -193,6 +221,15 @@ public final class MainActivity extends Activity {
         page.addView(button("‹  返回列表", false, this::leaveEditor)); gap(16);
         heading(t.id == 0 ? "安排一件小事" : t.done ? "已完成的事项" : "编辑待办", "让时间有安排，让心里少一件事。");
         label("事项名称 *"); titleInput = input("例如：读半小时书", t.title, 1); titleInput.setSingleLine(true);
+        label("轻重缓急 · 项目类型");
+        RadioGroup priorities = new RadioGroup(this); priorities.setTag("priority-options");
+        for (int i = 0; i < 4; i++) {
+            final int index = i; RadioButton option = new RadioButton(this); option.setId(View.generateViewId()); option.setTag("priority-" + i);
+            option.setText(Task.PRIORITY_LABELS[i]); option.setTextColor(Task.PRIORITY_COLORS[i]); option.setMinHeight(dp(48));
+            priorities.addView(option); option.setChecked(t.priorityIndex() == i);
+            option.setOnCheckedChangeListener((v, checked) -> { if (checked) draft.priority = index; });
+        }
+        page.addView(priorities); gap(12);
         label("备注 · 选填"); noteInput = input("补充一点细节", t.note, android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         noteInput.setMinLines(2); noteInput.setMaxLines(5);
         label("预计开始时间"); timeButton = button("", false, this::pickTime); page.addView(timeButton); gap(8);
@@ -257,7 +294,7 @@ public final class MainActivity extends Activity {
         updateTime();
         if (draft.id != 0) scheduler.cancel(store.get(draft.id));
         store.save(draft); scheduler.schedule(draft); boolean needsPermission = !draft.done && !draft.reminders().isEmpty() && (!scheduler.notificationsAllowed() || !scheduler.exactAllowed());
-        completedTab = draft.done; showList();
+        completedTab = draft.done; selectedDay = draft.start; showList();
         Toast.makeText(this, "事项已保存", Toast.LENGTH_SHORT).show();
         if (needsPermission) permissions();
     }

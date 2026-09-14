@@ -41,7 +41,7 @@ public class AppFlowTest {
         instrumentation.runOnMainSync(() -> {
             if (label.equals("＋  新建待办")) { View add = activity.getWindow().getDecorView().findViewWithTag("add-task"); assertNotNull(add); add.performClick(); return; }
             for (View v : all(activity.getWindow().getDecorView())) {
-                if (v instanceof Button && ((Button) v).getText().toString().equals(label)) { v.performClick(); return; }
+                if (v instanceof Button && (((Button) v).getText().toString().equals(label) || (label.equals("✓  标记完成") && v.getTag() != null && v.getTag().toString().startsWith("complete-")))) { v.performClick(); return; }
             }
             throw new AssertionError("Button missing: " + label);
         }); instrumentation.waitForIdleSync();
@@ -50,7 +50,7 @@ public class AppFlowTest {
         List<Long> ids = new ArrayList<>();
         try (TaskStore store = new TaskStore(context)) {
             for (int i = 0; i < 16; i++) {
-                Task task = new Task(); task.title = "滚动验证 " + i; task.start = System.currentTimeMillis() + (i == 0 ? 5000 : 86400000L + i * 60000L);
+                Task task = new Task(); task.title = "滚动验证 " + i; task.start = System.currentTimeMillis() + (i == 0 ? 5000 : 60000L + i * 60000L);
                 task.reminderMinutes = new TreeSet<>(); store.save(task); ids.add(task.id);
             }
         }
@@ -96,7 +96,7 @@ public class AppFlowTest {
             instrumentation.runOnMainSync(() -> {
                 List<EditText> inputs = new ArrayList<>(); List<CheckBox> options = new ArrayList<>();
                 for (View v : all(activity.getWindow().getDecorView())) { if (v instanceof EditText) inputs.add((EditText) v); if (v instanceof CheckBox) options.add((CheckBox) v); }
-                assertEquals(3, inputs.size()); inputs.get(0).setText("读半小时书"); inputs.get(1).setText("读完第二章，记下一个有趣的想法。"); inputs.get(2).setText("30");
+                assertEquals(3, inputs.size()); ((RadioButton) activity.getWindow().getDecorView().findViewWithTag("priority-0")).setChecked(true); inputs.get(0).setText("读半小时书"); inputs.get(1).setText("读完第二章，记下一个有趣的想法。"); inputs.get(2).setText("30");
                 assertEquals(0, options.size());
                 activity.getWindow().getDecorView().clearFocus();
             });
@@ -111,7 +111,7 @@ public class AppFlowTest {
             screenshot("editor.png"); click(activity, "保存事项");
             try (TaskStore store = new TaskStore(context)) {
                 assertEquals(1, store.all().size()); Task t = store.all().get(0);
-                assertEquals("读半小时书", t.title); assertEquals(30, t.duration); assertTrue(t.reminders().contains(10)); assertFalse(t.reminders().contains(1440));
+                assertEquals(0, t.priority); assertEquals("读半小时书", t.title); assertEquals(30, t.duration); assertTrue(t.reminders().contains(10)); assertFalse(t.reminders().contains(1440));
             }
             screenshot("list.png");
             instrumentation.runOnMainSync(() -> {
