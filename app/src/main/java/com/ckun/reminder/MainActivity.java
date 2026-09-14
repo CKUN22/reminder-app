@@ -19,6 +19,11 @@ public final class MainActivity extends Activity {
     private static final int BG = 0xffF7F8F2, INK = 0xff27332B, MUTED = 0xff758073, GREEN = 0xff52694D;
     private LinearLayout page;
     private ScrollView scroll;
+    private FrameLayout screen;
+    private TextView dateLabel;
+    private List<Task> displayedTasks = new ArrayList<>();
+    private final Map<Long, TextView> taskTimeLabels = new HashMap<>();
+    private boolean shownNotifications, shownExact;
     private TaskStore store;
     private ReminderScheduler scheduler;
     private boolean completedTab, editing, exactBefore;
@@ -32,9 +37,7 @@ public final class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable tick = new Runnable() {
         @Override public void run() {
-            if (!editing) {
-                int position = scroll.getScrollY(); showList(); scroll.post(() -> scroll.scrollTo(0, position));
-            } else updateTime();
+            if (!editing) refreshList();
             handler.postDelayed(this, 30_000);
         }
     };
@@ -67,7 +70,8 @@ public final class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         if (scheduler.exactAllowed() != exactBefore) { scheduler.restore(); exactBefore = scheduler.exactAllowed(); }
-        if (!editing) showList();
+        if (!editing) refreshList();
+        handler.removeCallbacks(tick);
         handler.postDelayed(tick, 30_000);
     }
     @Override protected void onPause() { super.onPause(); handler.removeCallbacks(tick); }
@@ -89,8 +93,9 @@ public final class MainActivity extends Activity {
     private void shell() {
         scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.setBackgroundColor(BG);
         page = new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(24), dp(20), dp(24), dp(32));
-        scroll.addView(page); setContentView(scroll);
-        scroll.setOnApplyWindowInsetsListener((v, insets) -> {
+        screen = new FrameLayout(this); screen.setBackgroundColor(BG);
+        scroll.addView(page); screen.addView(scroll, new FrameLayout.LayoutParams(-1, -1)); setContentView(screen);
+        screen.setOnApplyWindowInsetsListener((v, insets) -> {
             v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
             return insets;
         });
@@ -111,18 +116,23 @@ public final class MainActivity extends Activity {
     private String format(long time) { return new SimpleDateFormat("M月d日 HH:mm", Locale.CHINA).format(new Date(time)); }
     private void showList() {
         editing = false; shell();
+        taskTimeLabels.clear();
+        page.setPadding(dp(24), dp(20), dp(24), dp(104));
         page.addView(text("轻待办  /  OFFLINE", 12, GREEN));
-        heading("留点时间，做好小事", new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date()));
+        TextView heading = text("留点时间，做好小事", 30, INK); heading.setTypeface(null, Typeface.BOLD); page.addView(heading);
+        dateLabel = text(today(), 14, MUTED); page.addView(dateLabel); gap(18);
         LinearLayout tabs = new LinearLayout(this);
         Button pending = button("未完成", !completedTab, () -> { completedTab = false; showList(); });
         Button done = button("已完成", completedTab, () -> { completedTab = true; showList(); });
         tabs.addView(pending, new LinearLayout.LayoutParams(0, dp(52), 1));
         LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(0, dp(52), 1); tabParams.leftMargin = dp(10); tabs.addView(done, tabParams); page.addView(tabs); gap(16);
-        if (!scheduler.notificationsAllowed() || !scheduler.exactAllowed()) {
+        shownNotifications = scheduler.notificationsAllowed(); shownExact = scheduler.exactAllowed();
+        if (!shownNotifications || !shownExact) {
             String warning = !scheduler.notificationsAllowed() ? "通知未开启 · 点此设置提醒权限" : "精确提醒未开启 · 提醒可能延迟";
             Button banner = button(warning, false, this::permissions); banner.setTextSize(13); page.addView(banner); gap(16);
         }
         List<Task> tasks = store.all(); int count = 0;
+        displayedTasks = tasks;
         for (Task t : tasks) if (t.done == completedTab) count++;
         page.addView(text(completedTab ? "已完成 · " + count : "接下来的安排 · " + count, 13, MUTED)); gap(8);
         if (count == 0) {
@@ -134,8 +144,7 @@ public final class MainActivity extends Activity {
         for (Task t : tasks) {
             if (t.done != completedTab) continue;
             LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(18), dp(14), dp(18), dp(14)); card.setBackground(shape(Color.WHITE, 20));
-            boolean overdue = !t.done && t.start <= System.currentTimeMillis();
-            card.addView(text((overdue ? "已过开始时间 · " : "") + format(t.start), 13, overdue ? 0xffA26343 : GREEN));
+            TextView time = text("", 13, GREEN); time.setTag("task-time-" + t.id); taskTimeLabels.put(t.id, time); updateTaskTime(t, time); card.addView(time);
             TextView title = text(t.title, 20, INK); title.setTypeface(null, Typeface.BOLD); card.addView(title);
             if (t.duration > 0) card.addView(text("预计 " + t.duration + " 分钟 · 至 " + format(ReminderRules.end(t)), 13, MUTED));
             if (!t.note.isEmpty()) { TextView note = text(t.note, 14, MUTED); note.setMaxLines(2); note.setEllipsize(TextUtils.TruncateAt.END); card.addView(note); }
@@ -143,10 +152,34 @@ public final class MainActivity extends Activity {
             if (!t.done) { Button finish = button("✓  标记完成", false, () -> complete(t)); card.addView(finish); }
             page.addView(card); gap(12);
         }
-        gap(16); page.addView(button("＋  新建待办", true, () -> {
+        ImageButton add = new ImageButton(this); add.setTag("add-task"); add.setContentDescription("新建待办");
+        add.setImageResource(R.drawable.ic_add); add.setPadding(dp(18), dp(18), dp(18), dp(18));
+        add.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33FFFFFF), shape(GREEN, 32), null));
+        add.setElevation(dp(6));
+        add.setOnClickListener(v -> {
             Task t = new Task(); t.start = ((System.currentTimeMillis() / 60_000) + 30) * 60_000; showEditor(t);
-        }));
+        });
+        FrameLayout.LayoutParams floating = new FrameLayout.LayoutParams(dp(60), dp(60), Gravity.RIGHT | Gravity.BOTTOM);
+        floating.rightMargin = dp(24); floating.bottomMargin = dp(24); screen.addView(add, floating);
         gap(12); TextView local = text("仅保存在此设备 · 无需联网", 12, MUTED); local.setGravity(Gravity.CENTER); page.addView(local);
+    }
+    private String today() { return new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date()); }
+    private void updateTaskTime(Task task, TextView label) {
+        boolean overdue = !task.done && task.start <= System.currentTimeMillis();
+        String value = (overdue ? "已过开始时间 · " : "") + format(task.start);
+        if (!value.contentEquals(label.getText())) { label.setText(value); label.setTextColor(overdue ? 0xffA26343 : GREEN); }
+    }
+    private void refreshList() {
+        List<Task> current = store.all();
+        boolean changed = current.size() != displayedTasks.size() || shownNotifications != scheduler.notificationsAllowed() || shownExact != scheduler.exactAllowed();
+        if (!changed) for (int i = 0; i < current.size(); i++) {
+            if (current.get(i).id != displayedTasks.get(i).id || current.get(i).revision != displayedTasks.get(i).revision) { changed = true; break; }
+        }
+        if (changed) {
+            int position = scroll.getScrollY(); showList(); ScrollView target = scroll; target.post(() -> target.scrollTo(0, position)); return;
+        }
+        String date = today(); if (!date.contentEquals(dateLabel.getText())) dateLabel.setText(date);
+        for (Task task : displayedTasks) { TextView label = taskTimeLabels.get(task.id); if (label != null) updateTaskTime(task, label); }
     }
     private EditText input(String hint, String value, int type) {
         EditText e = new EditText(this); e.setTextColor(INK); e.setTextSize(16); e.setHint(hint); e.setInputType(type);

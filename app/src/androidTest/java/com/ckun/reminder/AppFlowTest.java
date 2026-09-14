@@ -26,7 +26,7 @@ public class AppFlowTest {
             click(activity, "＋  新建待办");
             instrumentation.runOnMainSync(activity::onBackPressed);
             instrumentation.waitForIdleSync();
-            instrumentation.runOnMainSync(() -> assertTrue(all(activity.getWindow().getDecorView()).stream().anyMatch(v -> v instanceof Button && ((Button) v).getText().toString().equals("＋  新建待办"))));
+            instrumentation.runOnMainSync(() -> assertNotNull(activity.getWindow().getDecorView().findViewWithTag("add-task")));
             try (TaskStore store = new TaskStore(context)) { assertEquals(before, store.all().size()); }
         } finally { instrumentation.runOnMainSync(activity::finish); }
     }
@@ -39,11 +39,47 @@ public class AppFlowTest {
     }
     private void click(Activity activity, String label) {
         instrumentation.runOnMainSync(() -> {
+            if (label.equals("＋  新建待办")) { View add = activity.getWindow().getDecorView().findViewWithTag("add-task"); assertNotNull(add); add.performClick(); return; }
             for (View v : all(activity.getWindow().getDecorView())) {
                 if (v instanceof Button && ((Button) v).getText().toString().equals(label)) { v.performClick(); return; }
             }
             throw new AssertionError("Button missing: " + label);
         }); instrumentation.waitForIdleSync();
+    }
+    @Test public void timerKeepsViewsAndScrollWhileFabStaysFixed() throws Exception {
+        List<Long> ids = new ArrayList<>();
+        try (TaskStore store = new TaskStore(context)) {
+            for (int i = 0; i < 16; i++) {
+                Task task = new Task(); task.title = "滚动验证 " + i; task.start = System.currentTimeMillis() + (i == 0 ? 5000 : 86400000L + i * 60000L);
+                task.reminderMinutes = new TreeSet<>(); store.save(task); ids.add(task.id);
+            }
+        }
+        Activity activity = instrumentation.startActivitySync(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        View[] fab = new View[1]; ScrollView[] scrolling = new ScrollView[1]; TextView[] time = new TextView[1]; int[] position = new int[1], location = new int[2];
+        try {
+            instrumentation.waitForIdleSync();
+            instrumentation.runOnMainSync(() -> {
+                fab[0] = activity.getWindow().getDecorView().findViewWithTag("add-task"); assertNotNull(fab[0]);
+                assertEquals(fab[0].getWidth(), fab[0].getHeight()); fab[0].getLocationOnScreen(location);
+                for (View v : all(activity.getWindow().getDecorView())) if (v instanceof ScrollView) { scrolling[0] = (ScrollView) v; break; }
+                time[0] = activity.getWindow().getDecorView().findViewWithTag("task-time-" + ids.get(0));
+                scrolling[0].scrollTo(0, 700);
+            }); instrumentation.waitForIdleSync();
+            instrumentation.runOnMainSync(() -> { position[0] = scrolling[0].getScrollY(); assertTrue(position[0] > 0); });
+            SystemClock.sleep(31500); instrumentation.waitForIdleSync();
+            instrumentation.runOnMainSync(() -> {
+                assertSame(fab[0], activity.getWindow().getDecorView().findViewWithTag("add-task"));
+                assertSame(time[0], activity.getWindow().getDecorView().findViewWithTag("task-time-" + ids.get(0)));
+                assertTrue(time[0].getText().toString().contains("已过开始时间"));
+                assertEquals(position[0], scrolling[0].getScrollY());
+                int[] after = new int[2]; fab[0].getLocationOnScreen(after); assertArrayEquals(location, after);
+            });
+            screenshot("floating-add.png"); click(activity, "＋  新建待办");
+            instrumentation.runOnMainSync(() -> assertNull(activity.getWindow().getDecorView().findViewWithTag("add-task")));
+        } finally {
+            instrumentation.runOnMainSync(activity::finish);
+            try (TaskStore store = new TaskStore(context)) { for (long id : ids) store.delete(id); }
+        }
     }
     private void screenshot(String name) throws Exception {
         SystemClock.sleep(2500);
