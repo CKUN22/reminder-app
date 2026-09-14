@@ -232,7 +232,12 @@ public final class MainActivity extends Activity {
         openTimePicker(null);
     }
     private void openTimePicker(Bundle state) {
-        startTimeDialog = new StartTimeDialog(this, draft.start, state, selected -> { draft.start = selected; updateTime(); });
+        startTimeDialog = new StartTimeDialog(this, draft.start, state, selected -> {
+            if (selected != draft.start && selected <= System.currentTimeMillis()) {
+                Toast.makeText(this, "请选择未来的开始时间", Toast.LENGTH_LONG).show(); return;
+            }
+            draft.start = selected; updateTime(); autoSaveReminder(true);
+        });
         startTimeDialog.show();
     }
     private void save() {
@@ -269,8 +274,22 @@ public final class MainActivity extends Activity {
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 20 && resultCode == RESULT_OK && data != null) {
-            draft.reminderMinutes = new TreeSet<>(); for (int n : data.getIntArrayExtra("reminders")) draft.reminderMinutes.add(n); updateTime();
+            draft.reminderMinutes = new TreeSet<>(); for (int n : data.getIntArrayExtra("reminders")) draft.reminderMinutes.add(n); updateTime(); autoSaveReminder(false);
         }
+    }
+    private void autoSaveReminder(boolean startChanged) {
+        if (draft.id == 0) return;
+        Task current = store.get(draft.id);
+        if (current == null) { Toast.makeText(this, "事项已被删除", Toast.LENGTH_SHORT).show(); showList(); return; }
+        boolean changed = startChanged ? current.start != draft.start : !current.reminders().equals(draft.reminders());
+        if (!changed) return;
+        scheduler.cancel(current);
+        if (startChanged) current.start = draft.start;
+        else current.reminderMinutes = draft.reminders();
+        store.save(current); scheduler.schedule(current);
+        draft.revision = current.revision; draft.done = current.done; originalStart = current.start;
+        Toast.makeText(this, "提醒时间已自动保存", Toast.LENGTH_SHORT).show();
+        if (!current.done && !current.reminders().isEmpty() && (!scheduler.notificationsAllowed() || !scheduler.exactAllowed())) permissions();
     }
     private void permissions() {
         new AlertDialog.Builder(this).setTitle("让提醒准时到达")

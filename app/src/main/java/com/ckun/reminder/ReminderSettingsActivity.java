@@ -49,7 +49,7 @@ public final class ReminderSettingsActivity extends Activity {
         }
         TextView custom = text("添加自定义  ›", 18); custom.setTag("custom-reminder"); custom.setPadding(dp(18), 0, dp(18), 0); custom.setBackground(background(Color.WHITE)); custom.setOnClickListener(v -> custom());
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(60)); params.topMargin = dp(18); page.addView(custom, params);
-        TextView hint = text("返回后保留选择，保存事项后生效。\n可不选提醒；已过期的提醒不会补发。", 13); hint.setTextColor(0xff808080); hint.setPadding(0, dp(16), 0, 0); page.addView(hint);
+        TextView hint = text("已有事项返回后自动保存提醒；新建事项首次保存后生效。\n可不选提醒；已过期的提醒不会补发。", 13); hint.setTextColor(0xff808080); hint.setPadding(0, dp(16), 0, 0); page.addView(hint);
     }
     private void updateCount() { count.setText(getString(R.string.reminder_count, selected.size())); }
     private void custom() {
