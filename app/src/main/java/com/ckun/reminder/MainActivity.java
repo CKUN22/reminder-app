@@ -171,9 +171,10 @@ public final class MainActivity extends Activity {
             if (!t.note.isEmpty()) { TextView note = text(t.note, 14, MUTED); note.setMaxLines(2); note.setEllipsize(TextUtils.TruncateAt.END); card.addView(note); }
             card.setOnClickListener(v -> showEditor(store.get(t.id)));
             if (!t.done) {
-                Button finish = button("✓", false, () -> complete(t)); finish.setTag("complete-" + t.id); finish.setContentDescription("标记完成：" + t.title);
+                Button finish = button("✓", false, () -> {}); finish.setTag("complete-" + t.id); finish.setContentDescription("标记完成：" + t.title);
                 finish.setTextSize(24); finish.setMinWidth(0); finish.setMinHeight(0); finish.setPadding(0, 0, 0, 0);
                 GradientDrawable circle = shape(CARD, 22); circle.setStroke(dp(2), priorityColor); finish.setBackground(circle); finish.setTextColor(priorityColor);
+                finish.setOnClickListener(v -> animateCompletion(t, v, row));
                 row.addView(finish, new LinearLayout.LayoutParams(dp(38), dp(38)));
             }
             page.addView(row); gap(12);
@@ -303,6 +304,19 @@ public final class MainActivity extends Activity {
         Task fresh = store.get(task.id); if (fresh == null) { showList(); return; }
         fresh.done = true; store.save(fresh); scheduler.cancel(fresh); showList();
         Toast.makeText(this, "又完成了一件小事", Toast.LENGTH_SHORT).show();
+    }
+    private void animateCompletion(Task task, View check, View card) {
+        if (!check.isEnabled()) return;
+        Task fresh = store.get(task.id); if (fresh == null) { showList(); return; }
+        check.setEnabled(false); check.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
+        TextView time = taskTimeLabels.get(task.id); if (time != null) time.setTag(null);
+        fresh.done = true; store.save(fresh); scheduler.cancel(fresh);
+        check.animate().scaleX(1.22f).scaleY(1.22f).rotation(12f).setDuration(140)
+                .setInterpolator(new android.view.animation.OvershootInterpolator()).withEndAction(() ->
+                check.animate().scaleX(.82f).scaleY(.82f).rotation(0f).alpha(0f).setDuration(180).start()).start();
+        card.animate().translationX(dp(18)).alpha(0f).setStartDelay(100).setDuration(260)
+                .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                .withEndAction(() -> { showList(); Toast.makeText(this, "又完成了一件小事", Toast.LENGTH_SHORT).show(); }).start();
     }
     private void reopen(Task task) {
         Task fresh = store.get(task.id); if (fresh == null) { showList(); return; }

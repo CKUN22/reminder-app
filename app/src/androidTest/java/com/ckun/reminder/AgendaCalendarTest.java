@@ -83,6 +83,25 @@ public class AgendaCalendarTest {
             try (TaskStore store = new TaskStore(context)) { store.delete(today.id); store.delete(tomorrow.id); }
         }
     }
+    @Test public void swipingAnywhereOnCalendarCollapsesAndExpandsIt() {
+        Activity activity = instrumentation.startActivitySync(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        try {
+            instrumentation.runOnMainSync(() -> {
+                View calendar = activity.getWindow().getDecorView().findViewWithTag("agenda-calendar");
+                long now = SystemClock.uptimeMillis();
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 30, 160, 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 80, MotionEvent.ACTION_UP, 30, 40, 0));
+                LinearLayout grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid");
+                assertEquals(1, grid.getChildCount());
+                calendar = activity.getWindow().getDecorView().findViewWithTag("agenda-calendar");
+                now = SystemClock.uptimeMillis();
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 30, 40, 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 80, MotionEvent.ACTION_UP, 30, 160, 0));
+                grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid");
+                assertTrue(grid.getChildCount() >= 4);
+            });
+        } finally { instrumentation.runOnMainSync(activity::finish); }
+    }
     @Test public void leapDayAndYearNavigationKeepValidDates() {
         instrumentation.runOnMainSync(() -> {
             Calendar date = Calendar.getInstance(); date.clear(); date.set(2028, Calendar.FEBRUARY, 29);

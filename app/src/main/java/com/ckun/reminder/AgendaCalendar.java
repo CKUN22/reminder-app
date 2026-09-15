@@ -17,11 +17,15 @@ final class AgendaCalendar extends LinearLayout {
     private final long selected;
     private final boolean week;
     private final Selection selection;
+    private float gestureDownY;
+    private boolean trackingGesture;
 
     @android.annotation.SuppressLint("ClickableViewAccessibility") // Taps return false to Button's native performClick; swipes have an equivalent click action.
     AgendaCalendar(Context context, long selected, boolean week, boolean completed, List<Task> tasks, Selection selection) {
         super(context); this.selected = selected; this.week = week; this.selection = selection;
-        setOrientation(VERTICAL);
+        setOrientation(VERTICAL); setTag("agenda-calendar");
+        setAlpha(0f); setTranslationY(dp(-8));
+        animate().alpha(1f).translationY(0f).setDuration(260).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
         LinearLayout header = new LinearLayout(context); header.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(action("‹", "上一" + (week ? "周" : "月"), () -> move(-1)), new LayoutParams(dp(40), dp(40)));
         TextView month = label(new SimpleDateFormat("yyyy年M月", Locale.CHINA).format(new Date(selected)), 18, INK);
@@ -79,6 +83,20 @@ final class AgendaCalendar extends LinearLayout {
             return false;
         });
         addView(handle, new LayoutParams(-1, dp(40)));
+    }
+    @Override public boolean dispatchTouchEvent(MotionEvent event) {
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            gestureDownY = event.getRawY(); trackingGesture = true;
+        } else if (event.getActionMasked() == MotionEvent.ACTION_UP && trackingGesture) {
+            trackingGesture = false; float distance = event.getRawY() - gestureDownY;
+            if (Math.abs(distance) > dp(36)) {
+                boolean targetWeek = distance < 0;
+                if (targetWeek != week) selection.select(selected, targetWeek);
+                performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                return true;
+            }
+        } else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) trackingGesture = false;
+        return super.dispatchTouchEvent(event);
     }
     static boolean sameDay(long a, long b) {
         Calendar first = Calendar.getInstance(), second = Calendar.getInstance(); first.setTimeInMillis(a); second.setTimeInMillis(b);
