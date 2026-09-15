@@ -1,5 +1,6 @@
 package com.ckun.reminder;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -19,6 +20,10 @@ final class AgendaCalendar extends LinearLayout {
     private final Selection selection;
     private float gestureDownY;
     private boolean trackingGesture;
+    private float dragStartProgress, expansionProgress;
+    private final FrameLayout gridViewport;
+    private final LinearLayout grid;
+    private final int cellHeight, rowCount, selectedRow;
 
     @android.annotation.SuppressLint("ClickableViewAccessibility") // Taps return false to Button's native performClick; swipes have an equivalent click action.
     AgendaCalendar(Context context, long selected, boolean week, boolean completed, List<Task> tasks, Selection selection) {
@@ -39,15 +44,16 @@ final class AgendaCalendar extends LinearLayout {
         for (String day : new String[]{"一", "二", "三", "四", "五", "六", "日"}) weekdays.addView(label(day, 11, MUTED), new LayoutParams(0, dp(22), 1));
         addView(weekdays);
         Calendar cursor = Calendar.getInstance(); cursor.setTimeInMillis(selected);
-        int monthIndex = cursor.get(Calendar.MONTH);
-        if (!week) cursor.set(Calendar.DAY_OF_MONTH, 1);
+        int monthIndex = cursor.get(Calendar.MONTH), selectedDay = cursor.get(Calendar.DAY_OF_MONTH);
+        cursor.set(Calendar.DAY_OF_MONTH, 1);
         int offset = (cursor.get(Calendar.DAY_OF_WEEK) + 5) % 7;
-        int rows = week ? 1 : (offset + cursor.getActualMaximum(Calendar.DAY_OF_MONTH) + 6) / 7;
+        rowCount = (offset + cursor.getActualMaximum(Calendar.DAY_OF_MONTH) + 6) / 7;
+        selectedRow = (offset + selectedDay - 1) / 7;
         cursor.add(Calendar.DAY_OF_MONTH, -offset);
-        LinearLayout grid = new LinearLayout(context); grid.setOrientation(VERTICAL); grid.setTag("calendar-grid");
+        grid = new LinearLayout(context); grid.setOrientation(VERTICAL); grid.setTag("calendar-grid");
         // Compact cells in landscape leave room for the agenda and its handle.
-        int height = getResources().getConfiguration().screenHeightDp < 600 ? 30 : 40;
-        for (int r = 0; r < rows; r++) {
+        cellHeight = dp(getResources().getConfiguration().screenHeightDp < 600 ? 30 : 40);
+        for (int r = 0; r < rowCount; r++) {
             LinearLayout row = new LinearLayout(context);
             for (int c = 0; c < 7; c++) {
                 final long day = cursor.getTimeInMillis(); boolean active = sameDay(day, selected);
@@ -67,36 +73,48 @@ final class AgendaCalendar extends LinearLayout {
                 cell.addView(dots, new LayoutParams(-1, dp(8)));
                 cell.setContentDescription(new SimpleDateFormat("yyyy年M月d日", Locale.CHINA).format(new Date(day)) + (active ? "，已选择" : ""));
                 cell.setFocusable(true); cell.setOnClickListener(v -> selection.select(day, week));
-                row.addView(cell, new LayoutParams(0, dp(height), 1)); cursor.add(Calendar.DAY_OF_MONTH, 1);
+                row.addView(cell, new LayoutParams(0, cellHeight, 1)); cursor.add(Calendar.DAY_OF_MONTH, 1);
             }
             grid.addView(row);
         }
-        addView(grid);
+        gridViewport = new FrameLayout(context); gridViewport.setTag("calendar-viewport"); gridViewport.setClipChildren(true); gridViewport.addView(grid, new FrameLayout.LayoutParams(-1, rowCount * cellHeight));
+        addView(gridViewport); expansionProgress = week ? 0f : 1f; applyExpansion(expansionProgress);
         Button handle = action(week ? "⌄  下拉展开月历" : "⌃  上拉查看日程", week ? "展开月历" : "收起月历", () -> selection.select(selected, !week));
         handle.setTag("agenda-handle");
-        final float[] down = new float[1];
-        handle.setOnTouchListener((v, event) -> {
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) { down[0] = event.getRawY(); v.getParent().requestDisallowInterceptTouchEvent(true); }
-            if (event.getActionMasked() == MotionEvent.ACTION_UP && Math.abs(event.getRawY() - down[0]) > dp(20)) {
-                selection.select(selected, event.getRawY() < down[0]); return true;
-            }
-            return false;
-        });
         addView(handle, new LayoutParams(-1, dp(40)));
     }
     @Override public boolean dispatchTouchEvent(MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-            gestureDownY = event.getRawY(); trackingGesture = true;
+            gestureDownY = event.getRawY(); dragStartProgress = expansionProgress; trackingGesture = true;
+            getParent().requestDisallowInterceptTouchEvent(true);
+        } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE && trackingGesture) {
+            updateDrag(event.getRawY());
         } else if (event.getActionMasked() == MotionEvent.ACTION_UP && trackingGesture) {
-            trackingGesture = false; float distance = event.getRawY() - gestureDownY;
-            if (Math.abs(distance) > dp(36)) {
-                boolean targetWeek = distance < 0;
-                if (targetWeek != week) selection.select(selected, targetWeek);
-                performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
-                return true;
-            }
+            float distance = event.getRawY() - gestureDownY; updateDrag(event.getRawY()); trackingGesture = false;
+            if (Math.abs(distance) > dp(8)) { settleToNearest(); return true; }
         } else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) trackingGesture = false;
         return super.dispatchTouchEvent(event);
+    }
+    private void updateDrag(float rawY) {
+        float range = Math.max(dp(80), (rowCount - 1) * cellHeight);
+        applyExpansion(Math.max(0f, Math.min(1f, dragStartProgress + (rawY - gestureDownY) / range)));
+    }
+    private void applyExpansion(float progress) {
+        progress = Math.max(0f, Math.min(1f, progress)); expansionProgress = progress;
+        ViewGroup.LayoutParams params = gridViewport.getLayoutParams();
+        if (params == null) params = new LayoutParams(-1, cellHeight);
+        params.height = Math.round(cellHeight + (rowCount - 1) * cellHeight * progress); gridViewport.setLayoutParams(params);
+        grid.setTranslationY(-selectedRow * cellHeight * (1f - progress)); grid.setAlpha(.72f + .28f * progress);
+    }
+    private void settleToNearest() {
+        float target = expansionProgress >= .5f ? 1f : 0f; boolean targetWeek = target == 0f;
+        ValueAnimator animator = ValueAnimator.ofFloat(expansionProgress, target); animator.setDuration(220); animator.setInterpolator(new android.view.animation.OvershootInterpolator(.65f));
+        animator.addUpdateListener(value -> applyExpansion((float) value.getAnimatedValue()));
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(android.animation.Animator animation) {
+                applyExpansion(target); if (targetWeek != week) { performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK); selection.select(selected, targetWeek); }
+            }
+        }); animator.start();
     }
     static boolean sameDay(long a, long b) {
         Calendar first = Calendar.getInstance(), second = Calendar.getInstance(); first.setTimeInMillis(a); second.setTimeInMillis(b);

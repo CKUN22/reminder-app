@@ -62,13 +62,11 @@ public class AgendaCalendarTest {
                 android.graphics.Rect visible = new android.graphics.Rect();
                 assertTrue("Agenda must be visible below the month", complete.getGlobalVisibleRect(visible));
                 assertEquals(complete.getWidth(), complete.getHeight());
-                View handle = root.findViewWithTag("agenda-handle"); long now = SystemClock.uptimeMillis();
-                MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 20, 100, 0);
-                MotionEvent up = MotionEvent.obtain(now, now + 100, MotionEvent.ACTION_UP, 20, 0, 0);
-                handle.dispatchTouchEvent(down); handle.dispatchTouchEvent(up); down.recycle(); up.recycle();
-                LinearLayout grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid"); assertEquals(1, grid.getChildCount());
+                root.findViewWithTag("agenda-handle").performClick();
+                LinearLayout grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid");
+                View viewport = activity.getWindow().getDecorView().findViewWithTag("calendar-viewport"); assertTrue(viewport.getLayoutParams().height < grid.getLayoutParams().height);
                 activity.getWindow().getDecorView().findViewWithTag("agenda-handle").performClick();
-                grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid"); assertTrue(grid.getChildCount() >= 4);
+                grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid"); viewport = activity.getWindow().getDecorView().findViewWithTag("calendar-viewport"); assertEquals(grid.getLayoutParams().height, viewport.getLayoutParams().height);
                 activity.getWindow().getDecorView().findViewWithTag("complete-" + today.id).performClick();
                 assertNull(activity.getWindow().getDecorView().findViewWithTag("task-time-" + today.id));
                 clickText(activity.getWindow().getDecorView(), "已完成");
@@ -88,17 +86,28 @@ public class AgendaCalendarTest {
         try {
             instrumentation.runOnMainSync(() -> {
                 View calendar = activity.getWindow().getDecorView().findViewWithTag("agenda-calendar");
+                View viewport = activity.getWindow().getDecorView().findViewWithTag("calendar-viewport"); int expanded = viewport.getLayoutParams().height;
                 long now = SystemClock.uptimeMillis();
                 calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 30, 160, 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_MOVE, 30, 90, 0));
+                assertTrue("calendar height follows the finger", viewport.getLayoutParams().height < expanded);
                 calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 80, MotionEvent.ACTION_UP, 30, 40, 0));
-                LinearLayout grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid");
-                assertEquals(1, grid.getChildCount());
-                calendar = activity.getWindow().getDecorView().findViewWithTag("agenda-calendar");
-                now = SystemClock.uptimeMillis();
+            });
+            SystemClock.sleep(300); instrumentation.waitForIdleSync();
+            instrumentation.runOnMainSync(() -> {
+                View viewport = activity.getWindow().getDecorView().findViewWithTag("calendar-viewport");
+                View grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid"); assertTrue(viewport.getLayoutParams().height < grid.getLayoutParams().height);
+                View calendar = activity.getWindow().getDecorView().findViewWithTag("agenda-calendar");
+                long now = SystemClock.uptimeMillis(); int collapsed = viewport.getLayoutParams().height;
                 calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 30, 40, 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_MOVE, 30, 100, 0));
+                assertTrue("calendar expands continuously while dragging", viewport.getLayoutParams().height > collapsed);
                 calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 80, MotionEvent.ACTION_UP, 30, 160, 0));
-                grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid");
-                assertTrue(grid.getChildCount() >= 4);
+            });
+            SystemClock.sleep(300); instrumentation.waitForIdleSync();
+            instrumentation.runOnMainSync(() -> {
+                View viewport = activity.getWindow().getDecorView().findViewWithTag("calendar-viewport"); View grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid");
+                assertEquals(grid.getLayoutParams().height, viewport.getLayoutParams().height);
             });
         } finally { instrumentation.runOnMainSync(activity::finish); }
     }
