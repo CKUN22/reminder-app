@@ -32,7 +32,7 @@ public final class ReminderReceiver extends BroadcastReceiver {
                     .setContentText(prefix + " · " + time).setStyle(new Notification.BigTextStyle().bigText(prefix + " · " + time + (t.note.isEmpty() ? "" : "\n" + t.note)))
                     .setContentIntent(content).setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
                     .addAction(new Notification.Action.Builder(null, "完成", action).build()).build();
-            try { context.getSystemService(NotificationManager.class).notify("task-" + t.id, 0, notification); }
+            try { context.getSystemService(NotificationManager.class).notify(ReminderScheduler.notificationTag(t.id, kind), 0, notification); }
             catch (SecurityException ignored) { /* Permission can be revoked between check and delivery. */ }
         }
     }

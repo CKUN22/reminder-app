@@ -21,6 +21,11 @@ public final class ReminderScheduler {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         return manager.areNotificationsEnabled() && manager.getNotificationChannel(CHANNEL).getImportance() != NotificationManager.IMPORTANCE_NONE;
     }
+    private PendingIntent show(Task t, int kind) {
+        Intent intent = new Intent(context, MainActivity.class)
+                .setData(Uri.parse("qingdan://task/" + t.id + "/" + kind)).putExtra("id", t.id);
+        return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
     private PendingIntent alarm(Task t, int kind) {
         Intent intent = new Intent(context, ReminderReceiver.class).setAction("REMIND")
                 .setData(Uri.parse("qingdan://reminder/" + t.id + "/" + kind))
@@ -30,6 +35,8 @@ public final class ReminderScheduler {
     public void cancel(Task t) {
         cancelAlarms(t);
         context.getSystemService(NotificationManager.class).cancel("task-" + t.id, 0);
+        for (int minutes : t.reminders())
+            context.getSystemService(NotificationManager.class).cancel(notificationTag(t.id, minutes), 0);
     }
     private void cancelAlarms(Task t) {
         for (int minutes : t.reminders()) alarms.cancel(alarm(t, minutes));
@@ -48,13 +55,14 @@ public final class ReminderScheduler {
             long at = t.start - kind * 60_000L;
             PendingIntent pending = alarm(t, kind);
             try {
-                if (exactAllowed()) alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);
+                if (exactAllowed()) alarms.setAlarmClock(new AlarmManager.AlarmClockInfo(at, show(t, kind)), pending);
                 else alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);
             } catch (SecurityException e) {
                 alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);
             }
         }
     }
+    public static String notificationTag(long taskId, int minutes) { return "task-" + taskId + "-" + minutes; }
     public void restore() {
         try (TaskStore store = new TaskStore(context)) {
             for (Task t : store.all()) { cancelAlarms(t); scheduleFuture(t); }

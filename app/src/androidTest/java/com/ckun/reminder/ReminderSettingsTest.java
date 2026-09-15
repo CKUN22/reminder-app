@@ -14,6 +14,11 @@ import java.util.*;
 import java.io.*;
 
 public class ReminderSettingsTest {
+    @Test public void separateReminderKindsUseSeparateNotificationTags() {
+        assertNotEquals(ReminderScheduler.notificationTag(42, 0), ReminderScheduler.notificationTag(42, 5));
+        assertEquals("task-42-0", ReminderScheduler.notificationTag(42, 0));
+        assertEquals("task-42-5", ReminderScheduler.notificationTag(42, 5));
+    }
     @Test public void presetsCustomAndReopenPersist() throws Exception {
         Instrumentation runner = InstrumentationRegistry.getInstrumentation(); Context context = runner.getTargetContext();
         Task task = new Task(); task.title = "提醒配置测试"; task.start = System.currentTimeMillis() + 10 * 86400000L;
