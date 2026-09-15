@@ -16,7 +16,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public final class MainActivity extends Activity {
-    private static final int BG = 0xffF7F8F2, INK = 0xff27332B, MUTED = 0xff758073, GREEN = 0xff52694D;
+    private static final int BG = 0xffFFF8ED, INK = 0xff4A3E35, MUTED = 0xff8E7D70, GREEN = 0xff7C9270;
+    private static final int CREAM = 0xffF5EBDD, CARD = 0xffFFFCF7;
     private long selectedDay = System.currentTimeMillis();
     private boolean weekMode;
     private LinearLayout page;
@@ -105,7 +106,8 @@ public final class MainActivity extends Activity {
         });
     }
     private TextView text(String value, int size, int color) {
-        TextView t = new TextView(this); t.setText(value); t.setTextSize(size); t.setTextColor(color); t.setPadding(0, dp(5), 0, dp(5)); return t;
+        TextView t = new TextView(this); t.setText(value); t.setTextSize(size); t.setTextColor(color);
+        t.setTypeface(Typeface.create("serif", Typeface.NORMAL)); t.setPadding(0, dp(4), 0, dp(4)); return t;
     }
     private void heading(String title, String sub) {
         TextView h = text(title, 30, INK); h.setTypeface(null, Typeface.BOLD); page.addView(h); page.addView(text(sub, 14, MUTED)); gap(18);
@@ -113,7 +115,8 @@ public final class MainActivity extends Activity {
     private void gap(int n) { View v = new View(this); page.addView(v, new LinearLayout.LayoutParams(1, dp(n))); }
     private Button button(String name, boolean primary, Runnable action) {
         Button b = new Button(this); b.setText(name); b.setTextSize(15); b.setAllCaps(false);
-        b.setTextColor(primary ? Color.WHITE : GREEN); b.setBackground(shape(primary ? GREEN : 0xffE8EDDF, 16));
+        b.setTypeface(Typeface.create("serif", Typeface.NORMAL));
+        b.setTextColor(primary ? Color.WHITE : GREEN); b.setBackground(shape(primary ? GREEN : CREAM, 22));
         b.setMinHeight(dp(52)); b.setPadding(dp(14), dp(10), dp(14), dp(10));
         b.setOnClickListener(v -> action.run()); return b;
     }
@@ -122,8 +125,7 @@ public final class MainActivity extends Activity {
         editing = false; shell();
         taskTimeLabels.clear();
         page.setPadding(dp(24), dp(20), dp(24), dp(104));
-        TextView heading = text("轻待办", 34, INK); heading.setTypeface(null, Typeface.BOLD); page.addView(heading);
-        dateLabel = text(today(), 14, MUTED); page.addView(dateLabel); gap(18);
+        dateLabel = text(today(), 13, MUTED); dateLabel.setTag("home-date"); page.addView(dateLabel); gap(12);
         LinearLayout tabs = new LinearLayout(this);
         Button pending = button("未完成", !completedTab, () -> { completedTab = false; showList(); });
         Button done = button("已完成", completedTab, () -> { completedTab = true; showList(); });
@@ -148,31 +150,32 @@ public final class MainActivity extends Activity {
         for (Task t : tasks) if (t.done == completedTab && AgendaCalendar.sameDay(t.start, selectedDay)) count++;
         page.addView(text(new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date(selectedDay)) + (completedTab ? " · 已完成 " : " · 日程 ") + count, 15, INK)); gap(8);
         if (count == 0) {
-            LinearLayout empty = new LinearLayout(this); empty.setOrientation(LinearLayout.VERTICAL); empty.setPadding(dp(24), dp(40), dp(24), dp(40)); empty.setBackground(shape(Color.WHITE, 24));
+            LinearLayout empty = new LinearLayout(this); empty.setOrientation(LinearLayout.VERTICAL); empty.setPadding(dp(22), dp(32), dp(22), dp(32)); empty.setBackground(shape(CARD, 28));
             TextView mark = text("✓", 44, GREEN); mark.setGravity(Gravity.CENTER); empty.addView(mark);
             TextView label = text(completedTab ? "每一件完成，都值得记录" : "这一天暂无待办", 18, INK); label.setGravity(Gravity.CENTER); empty.addView(label);
             TextView help = text(completedTab ? "这一天完成的事项会出现在这里" : "添加开始时间，让提醒替你记住", 13, MUTED); help.setGravity(Gravity.CENTER); empty.addView(help); page.addView(empty);
         }
         for (Task t : tasks) {
             if (t.done != completedTab || !AgendaCalendar.sameDay(t.start, selectedDay)) continue;
-            LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(18), dp(14), dp(18), dp(14)); card.setBackground(shape(Color.WHITE, 20));
+            LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(14), dp(8), dp(14), dp(8)); card.setBackground(shape(CARD, 24));
+            card.setTag("task-card-" + t.id);
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
             int priorityColor = Task.PRIORITY_COLORS[t.priorityIndex()];
             View stripe = new View(this); stripe.setBackground(shape(priorityColor, 3));
-            LinearLayout.LayoutParams stripeParams = new LinearLayout.LayoutParams(dp(4), dp(64)); stripeParams.rightMargin = dp(4); row.addView(stripe, stripeParams);
+            LinearLayout.LayoutParams stripeParams = new LinearLayout.LayoutParams(dp(4), dp(52)); stripeParams.rightMargin = dp(3); row.addView(stripe, stripeParams);
             row.addView(card, new LinearLayout.LayoutParams(0, -2, 1));
-            row.setPadding(dp(12), dp(4), dp(10), dp(4)); row.setBackground(shape(Color.WHITE, 20));
+            row.setPadding(dp(10), dp(3), dp(8), dp(3)); row.setBackground(shape(CARD, 24));
             TextView type = text(Task.PRIORITY_LABELS[t.priorityIndex()], 12, priorityColor); card.addView(type);
             TextView time = text("", 13, GREEN); time.setTag("task-time-" + t.id); taskTimeLabels.put(t.id, time); updateTaskTime(t, time); card.addView(time);
-            TextView title = text(t.title, 20, INK); title.setTypeface(null, Typeface.BOLD); card.addView(title);
+            TextView title = text(t.title, 17, INK); title.setTypeface(Typeface.create("serif", Typeface.BOLD)); card.addView(title);
             if (t.duration > 0) card.addView(text("预计 " + t.duration + " 分钟 · 至 " + format(ReminderRules.end(t)), 13, MUTED));
             if (!t.note.isEmpty()) { TextView note = text(t.note, 14, MUTED); note.setMaxLines(2); note.setEllipsize(TextUtils.TruncateAt.END); card.addView(note); }
             card.setOnClickListener(v -> showEditor(store.get(t.id)));
             if (!t.done) {
                 Button finish = button("✓", false, () -> complete(t)); finish.setTag("complete-" + t.id); finish.setContentDescription("标记完成：" + t.title);
                 finish.setTextSize(24); finish.setMinWidth(0); finish.setMinHeight(0); finish.setPadding(0, 0, 0, 0);
-                GradientDrawable circle = shape(Color.WHITE, 24); circle.setStroke(dp(2), priorityColor); finish.setBackground(circle); finish.setTextColor(priorityColor);
-                row.addView(finish, new LinearLayout.LayoutParams(dp(48), dp(48)));
+                GradientDrawable circle = shape(CARD, 22); circle.setStroke(dp(2), priorityColor); finish.setBackground(circle); finish.setTextColor(priorityColor);
+                row.addView(finish, new LinearLayout.LayoutParams(dp(42), dp(42)));
             }
             page.addView(row); gap(12);
         }
@@ -189,7 +192,6 @@ public final class MainActivity extends Activity {
         });
         FrameLayout.LayoutParams floating = new FrameLayout.LayoutParams(dp(60), dp(60), Gravity.RIGHT | Gravity.BOTTOM);
         floating.rightMargin = dp(24); floating.bottomMargin = dp(24); screen.addView(add, floating);
-        gap(12); TextView local = text("仅保存在此设备 · 无需联网", 12, MUTED); local.setGravity(Gravity.CENTER); page.addView(local);
     }
     private String today() { return new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date()); }
     private void updateTaskTime(Task task, TextView label) {

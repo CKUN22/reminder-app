@@ -13,7 +13,7 @@ import java.util.*;
 @android.annotation.SuppressLint("ViewConstructor") // Built with task data, never inflated from XML.
 final class AgendaCalendar extends LinearLayout {
     interface Selection { void select(long day, boolean week); }
-    private static final int GREEN = 0xff52694D, INK = 0xff27332B, MUTED = 0xff758073;
+    private static final int GREEN = 0xff7C9270, INK = 0xff4A3E35, MUTED = 0xff8E7D70, CREAM = 0xffF5EBDD;
     private final long selected;
     private final boolean week;
     private final Selection selection;
@@ -23,14 +23,14 @@ final class AgendaCalendar extends LinearLayout {
         super(context); this.selected = selected; this.week = week; this.selection = selection;
         setOrientation(VERTICAL);
         LinearLayout header = new LinearLayout(context); header.setGravity(Gravity.CENTER_VERTICAL);
-        header.addView(action("‹", "上一" + (week ? "周" : "月"), () -> move(-1)), new LayoutParams(dp(48), dp(48)));
-        TextView month = label(new SimpleDateFormat("yyyy年M月", Locale.CHINA).format(new Date(selected)), 21, INK);
-        month.setTypeface(null, Typeface.BOLD); month.setTag("calendar-month"); header.addView(month, new LayoutParams(0, dp(48), 1));
-        header.addView(action("›", "下一" + (week ? "周" : "月"), () -> move(1)), new LayoutParams(dp(48), dp(48)));
-        header.addView(action("今天", "回到今天", () -> selection.select(System.currentTimeMillis(), week)), new LayoutParams(dp(54), dp(48)));
+        header.addView(action("‹", "上一" + (week ? "周" : "月"), () -> move(-1)), new LayoutParams(dp(40), dp(40)));
+        TextView month = label(new SimpleDateFormat("yyyy年M月", Locale.CHINA).format(new Date(selected)), 18, INK);
+        month.setTypeface(Typeface.create("serif", Typeface.BOLD)); month.setTag("calendar-month"); header.addView(month, new LayoutParams(0, dp(40), 1));
+        header.addView(action("›", "下一" + (week ? "周" : "月"), () -> move(1)), new LayoutParams(dp(40), dp(40)));
+        header.addView(action("今天", "回到今天", () -> selection.select(System.currentTimeMillis(), week)), new LayoutParams(dp(50), dp(40)));
         addView(header);
         LinearLayout weekdays = new LinearLayout(context);
-        for (String day : new String[]{"一", "二", "三", "四", "五", "六", "日"}) weekdays.addView(label(day, 12, MUTED), new LayoutParams(0, dp(28), 1));
+        for (String day : new String[]{"一", "二", "三", "四", "五", "六", "日"}) weekdays.addView(label(day, 11, MUTED), new LayoutParams(0, dp(22), 1));
         addView(weekdays);
         Calendar cursor = Calendar.getInstance(); cursor.setTimeInMillis(selected);
         int monthIndex = cursor.get(Calendar.MONTH);
@@ -40,15 +40,15 @@ final class AgendaCalendar extends LinearLayout {
         cursor.add(Calendar.DAY_OF_MONTH, -offset);
         LinearLayout grid = new LinearLayout(context); grid.setOrientation(VERTICAL); grid.setTag("calendar-grid");
         // Compact cells in landscape leave room for the agenda and its handle.
-        int height = getResources().getConfiguration().screenHeightDp < 600 ? 32 : 48;
+        int height = getResources().getConfiguration().screenHeightDp < 600 ? 30 : 40;
         for (int r = 0; r < rows; r++) {
             LinearLayout row = new LinearLayout(context);
             for (int c = 0; c < 7; c++) {
                 final long day = cursor.getTimeInMillis(); boolean active = sameDay(day, selected);
                 LinearLayout cell = new LinearLayout(context); cell.setOrientation(VERTICAL); cell.setGravity(Gravity.CENTER);
                 cell.setTag("day-" + new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date(day)));
-                if (active) cell.setBackground(shape(GREEN, 18));
-                cell.addView(label(String.valueOf(cursor.get(Calendar.DAY_OF_MONTH)), 17, active ? Color.WHITE : cursor.get(Calendar.MONTH) == monthIndex ? INK : MUTED));
+                if (active) cell.setBackground(shape(GREEN, 20));
+                cell.addView(label(String.valueOf(cursor.get(Calendar.DAY_OF_MONTH)), 15, active ? Color.WHITE : cursor.get(Calendar.MONTH) == monthIndex ? INK : MUTED));
                 LinearLayout dots = new LinearLayout(context); dots.setGravity(Gravity.CENTER);
                 for (int priority = 0; priority < 4; priority++) {
                     boolean exists = false;
@@ -76,7 +76,7 @@ final class AgendaCalendar extends LinearLayout {
             }
             return false;
         });
-        addView(handle, new LayoutParams(-1, dp(48)));
+        addView(handle, new LayoutParams(-1, dp(40)));
     }
     static boolean sameDay(long a, long b) {
         Calendar first = Calendar.getInstance(), second = Calendar.getInstance(); first.setTimeInMillis(a); second.setTimeInMillis(b);
@@ -88,10 +88,10 @@ final class AgendaCalendar extends LinearLayout {
     }
     private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
     private GradientDrawable shape(int color, int radius) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); return d; }
-    private TextView label(String value, int size, int color) { TextView t = new TextView(getContext()); t.setText(value); t.setTextSize(size); t.setTextColor(color); t.setGravity(Gravity.CENTER); return t; }
+    private TextView label(String value, int size, int color) { TextView t = new TextView(getContext()); t.setText(value); t.setTextSize(size); t.setTextColor(color); t.setTypeface(Typeface.create("serif", Typeface.NORMAL)); t.setGravity(Gravity.CENTER); return t; }
     private Button action(String value, String description, Runnable run) {
         Button b = new Button(getContext()); b.setText(value); b.setTextSize(13); b.setTextColor(GREEN); b.setAllCaps(false);
-        b.setMinWidth(0); b.setMinHeight(0); b.setPadding(0, 0, 0, 0); b.setBackground(shape(0xffE8EDDF, 16));
+        b.setTypeface(Typeface.create("serif", Typeface.NORMAL)); b.setMinWidth(0); b.setMinHeight(0); b.setPadding(0, 0, 0, 0); b.setBackground(shape(CREAM, 20));
         b.setContentDescription(description); b.setOnClickListener(v -> run.run()); return b;
     }
 }

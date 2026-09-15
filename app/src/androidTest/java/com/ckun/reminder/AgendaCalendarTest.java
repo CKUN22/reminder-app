@@ -13,6 +13,27 @@ import static org.junit.Assert.*;
 public class AgendaCalendarTest {
     private final Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
     private final Context context = instrumentation.getTargetContext();
+    @Test public void homeUsesCompactCreamLayoutWithoutRedundantCopy() {
+        Task task = new Task(); task.title = "紧凑卡片"; task.start = System.currentTimeMillis() + 60000;
+        try (TaskStore store = new TaskStore(context)) { store.save(task); }
+        Activity activity = instrumentation.startActivitySync(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        try {
+            instrumentation.runOnMainSync(() -> {
+                View root = activity.getWindow().getDecorView();
+                assertNotNull(root.findViewWithTag("home-date"));
+                assertNotNull(root.findViewWithTag("task-card-" + task.id));
+                assertNull(findText(root, "轻待办"));
+                assertNull(findText(root, "仅保存在此设备 · 无需联网"));
+                View handle = root.findViewWithTag("agenda-handle");
+                assertEquals(dp(40), handle.getLayoutParams().height);
+                View complete = root.findViewWithTag("complete-" + task.id);
+                assertEquals(dp(42), complete.getLayoutParams().width);
+            });
+        } finally {
+            instrumentation.runOnMainSync(activity::finish);
+            try (TaskStore store = new TaskStore(context)) { store.delete(task.id); }
+        }
+    }
     @Test public void selectedDayFiltersBothTabsAndHandleRespondsToSwipe() {
         Task today = new Task(), tomorrow = new Task();
         today.title = "今天的事项"; today.start = System.currentTimeMillis(); today.priority = 0;
@@ -68,4 +89,12 @@ public class AgendaCalendarTest {
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) if (clickText(((ViewGroup) view).getChildAt(i), value)) return true;
         return false;
     }
+    private TextView findText(View view, String value) {
+        if (view instanceof TextView && value.contentEquals(((TextView) view).getText())) return (TextView) view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+            TextView found = findText(((ViewGroup) view).getChildAt(i), value); if (found != null) return found;
+        }
+        return null;
+    }
+    private int dp(int value) { return Math.round(value * context.getResources().getDisplayMetrics().density); }
 }
