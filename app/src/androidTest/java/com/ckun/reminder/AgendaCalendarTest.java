@@ -62,11 +62,9 @@ public class AgendaCalendarTest {
                 android.graphics.Rect visible = new android.graphics.Rect();
                 assertTrue("Agenda must be visible below the month", complete.getGlobalVisibleRect(visible));
                 assertEquals(complete.getWidth(), complete.getHeight());
+                View calendar = root.findViewWithTag("agenda-calendar"); assertEquals(1f, calendar.getAlpha(), 0f);
                 root.findViewWithTag("agenda-handle").performClick();
-                LinearLayout grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid");
-                View viewport = activity.getWindow().getDecorView().findViewWithTag("calendar-viewport"); assertTrue(viewport.getLayoutParams().height < grid.getLayoutParams().height);
-                activity.getWindow().getDecorView().findViewWithTag("agenda-handle").performClick();
-                grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid"); viewport = activity.getWindow().getDecorView().findViewWithTag("calendar-viewport"); assertEquals(grid.getLayoutParams().height, viewport.getLayoutParams().height);
+                assertSame("mode toggle must not rebuild and flash the calendar", calendar, root.findViewWithTag("agenda-calendar"));
                 activity.getWindow().getDecorView().findViewWithTag("complete-" + today.id).performClick();
                 assertNull(activity.getWindow().getDecorView().findViewWithTag("task-time-" + today.id));
                 clickText(activity.getWindow().getDecorView(), "已完成");
@@ -115,11 +113,11 @@ public class AgendaCalendarTest {
         instrumentation.runOnMainSync(() -> {
             Calendar date = Calendar.getInstance(); date.clear(); date.set(2028, Calendar.FEBRUARY, 29);
             long[] selected = {0}; boolean[] week = {false};
-            AgendaCalendar calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, false, new ArrayList<>(), (d, w) -> { selected[0] = d; week[0] = w; });
+            AgendaCalendar calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, false, new ArrayList<>(), (d, w) -> { selected[0] = d; week[0] = w; }, w -> week[0] = w);
             assertNotNull(calendar.findViewWithTag("day-2028-02-29"));
             clickText(calendar, "›"); date.setTimeInMillis(selected[0]); assertEquals(Calendar.MARCH, date.get(Calendar.MONTH)); assertEquals(29, date.get(Calendar.DATE));
             date.set(2028, Calendar.DECEMBER, 31);
-            calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, false, new ArrayList<>(), (d, w) -> selected[0] = d);
+            calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, false, new ArrayList<>(), (d, w) -> selected[0] = d, w -> week[0] = w);
             clickText(calendar, "›"); date.setTimeInMillis(selected[0]); assertEquals(2029, date.get(Calendar.YEAR)); assertEquals(Calendar.JANUARY, date.get(Calendar.MONTH));
         });
     }

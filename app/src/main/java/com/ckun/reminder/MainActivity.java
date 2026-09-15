@@ -147,7 +147,8 @@ public final class MainActivity extends Activity {
             Button banner = button(warning, false, this::permissions); banner.setTextSize(13); page.addView(banner); gap(16);
         }
         List<Task> tasks = store.all();
-        page.addView(new AgendaCalendar(this, selectedDay, weekMode, completedTab, tasks, (day, week) -> { selectedDay = day; weekMode = week; showList(); }));
+        page.addView(new AgendaCalendar(this, selectedDay, weekMode, completedTab, tasks,
+                (day, week) -> { selectedDay = day; weekMode = week; showList(); }, week -> weekMode = week));
         scroll.removeView(page); screen.removeView(scroll);
         LinearLayout layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
         screen.addView(layout, new FrameLayout.LayoutParams(-1, -1));

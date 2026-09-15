@@ -14,23 +14,24 @@ import java.util.*;
 @android.annotation.SuppressLint("ViewConstructor") // Built with task data, never inflated from XML.
 final class AgendaCalendar extends LinearLayout {
     interface Selection { void select(long day, boolean week); }
+    interface ModeChange { void change(boolean week); }
     private static final int GREEN = 0xff7C9270, INK = 0xff4A3E35, MUTED = 0xff8E7D70, CREAM = 0xffF5EBDD;
     private final long selected;
-    private final boolean week;
+    private boolean week;
     private final Selection selection;
+    private final ModeChange modeChange;
     private float gestureDownY;
     private boolean trackingGesture;
     private float dragStartProgress, expansionProgress;
     private final FrameLayout gridViewport;
     private final LinearLayout grid;
     private final int cellHeight, rowCount, selectedRow;
+    private final Button handle;
 
     @android.annotation.SuppressLint("ClickableViewAccessibility") // Taps return false to Button's native performClick; swipes have an equivalent click action.
-    AgendaCalendar(Context context, long selected, boolean week, boolean completed, List<Task> tasks, Selection selection) {
-        super(context); this.selected = selected; this.week = week; this.selection = selection;
+    AgendaCalendar(Context context, long selected, boolean week, boolean completed, List<Task> tasks, Selection selection, ModeChange modeChange) {
+        super(context); this.selected = selected; this.week = week; this.selection = selection; this.modeChange = modeChange;
         setOrientation(VERTICAL); setTag("agenda-calendar");
-        setAlpha(0f); setTranslationY(dp(-8));
-        animate().alpha(1f).translationY(0f).setDuration(260).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
         LinearLayout header = new LinearLayout(context); header.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(action("‹", "上一" + (week ? "周" : "月"), () -> move(-1)), new LayoutParams(dp(40), dp(40)));
         TextView month = label(new SimpleDateFormat("yyyy年M月", Locale.CHINA).format(new Date(selected)), 18, INK);
@@ -79,7 +80,7 @@ final class AgendaCalendar extends LinearLayout {
         }
         gridViewport = new FrameLayout(context); gridViewport.setTag("calendar-viewport"); gridViewport.setClipChildren(true); gridViewport.addView(grid, new FrameLayout.LayoutParams(-1, rowCount * cellHeight));
         addView(gridViewport); expansionProgress = week ? 0f : 1f; applyExpansion(expansionProgress);
-        Button handle = action(week ? "⌄  下拉展开月历" : "⌃  上拉查看日程", week ? "展开月历" : "收起月历", () -> selection.select(selected, !week));
+        handle = action(week ? "⌄  下拉展开月历" : "⌃  上拉查看日程", week ? "展开月历" : "收起月历", () -> animateTo(week ? 1f : 0f));
         handle.setTag("agenda-handle");
         addView(handle, new LayoutParams(-1, dp(40)));
     }
@@ -107,14 +108,24 @@ final class AgendaCalendar extends LinearLayout {
         grid.setTranslationY(-selectedRow * cellHeight * (1f - progress)); grid.setAlpha(.72f + .28f * progress);
     }
     private void settleToNearest() {
-        float target = expansionProgress >= .5f ? 1f : 0f; boolean targetWeek = target == 0f;
+        animateTo(expansionProgress >= .5f ? 1f : 0f);
+    }
+    private void animateTo(float target) {
+        boolean targetWeek = target == 0f;
         ValueAnimator animator = ValueAnimator.ofFloat(expansionProgress, target); animator.setDuration(220); animator.setInterpolator(new android.view.animation.OvershootInterpolator(.65f));
         animator.addUpdateListener(value -> applyExpansion((float) value.getAnimatedValue()));
         animator.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override public void onAnimationEnd(android.animation.Animator animation) {
-                applyExpansion(target); if (targetWeek != week) { performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK); selection.select(selected, targetWeek); }
+                applyExpansion(target);
+                if (targetWeek != week) {
+                    week = targetWeek; modeChange.change(week); updateHandle(); performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                }
             }
         }); animator.start();
+    }
+    private void updateHandle() {
+        handle.setText(week ? "⌄  下拉展开月历" : "⌃  上拉查看日程");
+        handle.setContentDescription(week ? "展开月历" : "收起月历");
     }
     static boolean sameDay(long a, long b) {
         Calendar first = Calendar.getInstance(), second = Calendar.getInstance(); first.setTimeInMillis(a); second.setTimeInMillis(b);
