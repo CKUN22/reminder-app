@@ -27,12 +27,23 @@ public class AgendaCalendarTest {
                 View handle = root.findViewWithTag("agenda-handle");
                 assertEquals(dp(40), handle.getLayoutParams().height);
                 View complete = root.findViewWithTag("complete-" + task.id);
-                assertEquals(dp(42), complete.getLayoutParams().width);
+                assertEquals(dp(38), complete.getLayoutParams().width);
+                assertNull(findText(root, Task.PRIORITY_LABELS[task.priorityIndex()]));
             });
         } finally {
             instrumentation.runOnMainSync(activity::finish);
             try (TaskStore store = new TaskStore(context)) { store.delete(task.id); }
         }
+    }
+    @Test public void monthHeadingIsAnAccessiblePickerAction() {
+        Activity activity = instrumentation.startActivitySync(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        try {
+            instrumentation.runOnMainSync(() -> {
+                View heading = activity.getWindow().getDecorView().findViewWithTag("calendar-month");
+                assertEquals("选择年份和月份", heading.getContentDescription());
+                assertTrue(heading.performClick());
+            });
+        } finally { instrumentation.runOnMainSync(activity::finish); }
     }
     @Test public void selectedDayFiltersBothTabsAndHandleRespondsToSwipe() {
         Task today = new Task(), tomorrow = new Task();

@@ -157,17 +157,16 @@ public final class MainActivity extends Activity {
         }
         for (Task t : tasks) {
             if (t.done != completedTab || !AgendaCalendar.sameDay(t.start, selectedDay)) continue;
-            LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(14), dp(8), dp(14), dp(8)); card.setBackground(shape(CARD, 24));
+            LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(12), dp(5), dp(12), dp(5)); card.setBackground(shape(CARD, 24));
             card.setTag("task-card-" + t.id);
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
             int priorityColor = Task.PRIORITY_COLORS[t.priorityIndex()];
             View stripe = new View(this); stripe.setBackground(shape(priorityColor, 3));
-            LinearLayout.LayoutParams stripeParams = new LinearLayout.LayoutParams(dp(4), dp(52)); stripeParams.rightMargin = dp(3); row.addView(stripe, stripeParams);
+            LinearLayout.LayoutParams stripeParams = new LinearLayout.LayoutParams(dp(4), dp(42)); stripeParams.rightMargin = dp(3); row.addView(stripe, stripeParams);
             row.addView(card, new LinearLayout.LayoutParams(0, -2, 1));
-            row.setPadding(dp(10), dp(3), dp(8), dp(3)); row.setBackground(shape(CARD, 24));
-            TextView type = text(Task.PRIORITY_LABELS[t.priorityIndex()], 12, priorityColor); card.addView(type);
-            TextView time = text("", 13, GREEN); time.setTag("task-time-" + t.id); taskTimeLabels.put(t.id, time); updateTaskTime(t, time); card.addView(time);
-            TextView title = text(t.title, 17, INK); title.setTypeface(Typeface.create("serif", Typeface.BOLD)); card.addView(title);
+            row.setPadding(dp(9), dp(2), dp(7), dp(2)); row.setBackground(shape(CARD, 24));
+            TextView time = text("", 12, GREEN); time.setTag("task-time-" + t.id); taskTimeLabels.put(t.id, time); updateTaskTime(t, time); card.addView(time);
+            TextView title = text(t.title, 16, INK); title.setTypeface(Typeface.create("serif", Typeface.BOLD)); card.addView(title);
             if (t.duration > 0) card.addView(text("预计 " + t.duration + " 分钟 · 至 " + format(ReminderRules.end(t)), 13, MUTED));
             if (!t.note.isEmpty()) { TextView note = text(t.note, 14, MUTED); note.setMaxLines(2); note.setEllipsize(TextUtils.TruncateAt.END); card.addView(note); }
             card.setOnClickListener(v -> showEditor(store.get(t.id)));
@@ -175,7 +174,7 @@ public final class MainActivity extends Activity {
                 Button finish = button("✓", false, () -> complete(t)); finish.setTag("complete-" + t.id); finish.setContentDescription("标记完成：" + t.title);
                 finish.setTextSize(24); finish.setMinWidth(0); finish.setMinHeight(0); finish.setPadding(0, 0, 0, 0);
                 GradientDrawable circle = shape(CARD, 22); circle.setStroke(dp(2), priorityColor); finish.setBackground(circle); finish.setTextColor(priorityColor);
-                row.addView(finish, new LinearLayout.LayoutParams(dp(42), dp(42)));
+                row.addView(finish, new LinearLayout.LayoutParams(dp(38), dp(38)));
             }
             page.addView(row); gap(12);
         }

@@ -25,7 +25,9 @@ final class AgendaCalendar extends LinearLayout {
         LinearLayout header = new LinearLayout(context); header.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(action("‹", "上一" + (week ? "周" : "月"), () -> move(-1)), new LayoutParams(dp(40), dp(40)));
         TextView month = label(new SimpleDateFormat("yyyy年M月", Locale.CHINA).format(new Date(selected)), 18, INK);
-        month.setTypeface(Typeface.create("serif", Typeface.BOLD)); month.setTag("calendar-month"); header.addView(month, new LayoutParams(0, dp(40), 1));
+        month.setTypeface(Typeface.create("serif", Typeface.BOLD)); month.setTag("calendar-month");
+        month.setContentDescription("选择年份和月份"); month.setFocusable(true); month.setOnClickListener(v -> chooseMonth());
+        header.addView(month, new LayoutParams(0, dp(40), 1));
         header.addView(action("›", "下一" + (week ? "周" : "月"), () -> move(1)), new LayoutParams(dp(40), dp(40)));
         header.addView(action("今天", "回到今天", () -> selection.select(System.currentTimeMillis(), week)), new LayoutParams(dp(50), dp(40)));
         addView(header);
@@ -85,6 +87,21 @@ final class AgendaCalendar extends LinearLayout {
     private void move(int direction) {
         Calendar date = Calendar.getInstance(); date.setTimeInMillis(selected);
         date.add(week ? Calendar.WEEK_OF_YEAR : Calendar.MONTH, direction); selection.select(date.getTimeInMillis(), week);
+    }
+    private void chooseMonth() {
+        Calendar current = Calendar.getInstance(); current.setTimeInMillis(selected);
+        LinearLayout pickers = new LinearLayout(getContext()); pickers.setPadding(dp(20), dp(8), dp(20), 0);
+        NumberPicker year = new NumberPicker(getContext()); year.setTag("year-picker"); year.setMinValue(1970); year.setMaxValue(2100); year.setValue(current.get(Calendar.YEAR));
+        NumberPicker month = new NumberPicker(getContext()); month.setTag("month-picker"); month.setMinValue(1); month.setMaxValue(12); month.setValue(current.get(Calendar.MONTH) + 1);
+        pickers.addView(year, new LayoutParams(0, -2, 1)); pickers.addView(month, new LayoutParams(0, -2, 1));
+        new android.app.AlertDialog.Builder(getContext()).setTitle("选择年份和月份").setView(pickers)
+                .setNegativeButton("取消", null).setPositiveButton("确定", (dialog, which) -> {
+                    Calendar chosen = Calendar.getInstance(); chosen.setTimeInMillis(selected);
+                    int day = chosen.get(Calendar.DAY_OF_MONTH); chosen.set(Calendar.DAY_OF_MONTH, 1);
+                    chosen.set(Calendar.YEAR, year.getValue()); chosen.set(Calendar.MONTH, month.getValue() - 1);
+                    chosen.set(Calendar.DAY_OF_MONTH, Math.min(day, chosen.getActualMaximum(Calendar.DAY_OF_MONTH)));
+                    selection.select(chosen.getTimeInMillis(), week);
+                }).show();
     }
     private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
     private GradientDrawable shape(int color, int radius) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); return d; }
