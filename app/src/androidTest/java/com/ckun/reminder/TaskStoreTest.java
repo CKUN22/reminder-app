@@ -15,12 +15,12 @@ public class TaskStoreTest {
     @Test public void testPersistenceUpdateCompleteAndDelete() {
         long id;
         try (TaskStore store = new TaskStore(getContext())) {
-            Task t = new Task(); t.title = "读书"; t.note = "第二章"; t.start = System.currentTimeMillis() + 3600000;
+            Task t = new Task(); t.title = "读书"; t.note = "第二章"; t.start = System.currentTimeMillis() + 3600000; t.sourceGoalId = 7; t.generatedDay = 123000L;
             t.priority = 0; t.duration = 30; t.earlyTen = true; store.save(t); id = t.id;
         }
         try (TaskStore store = new TaskStore(getContext())) {
             Task t = store.get(id); assertEquals("读书", t.title); assertEquals("第二章", t.note);
-            assertEquals(0, t.priority); assertEquals(30, t.duration); assertTrue(t.earlyTen); assertFalse(t.done);
+            assertEquals(0, t.priority); assertEquals(30, t.duration); assertTrue(t.earlyTen); assertFalse(t.done); assertEquals(7, t.sourceGoalId); assertEquals(123000L, t.generatedDay); assertTrue(store.hasGeneratedTask(7, 123000L));
             long revision = t.revision; t.title = "散步"; t.start += 86400000; store.save(t);
             assertEquals(revision + 1, store.get(id).revision); assertEquals("散步", store.get(id).title);
             t.done = true; t.completedAt = 123456789L; store.save(t); assertTrue(store.get(id).done); assertEquals(123456789L, store.get(id).completedAt);

@@ -9,12 +9,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TaskStore extends SQLiteOpenHelper {
-    public TaskStore(Context context) { super(context, "tasks.db", null, 4); }
+    public TaskStore(Context context) { super(context, "tasks.db", null, 5); }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, note TEXT NOT NULL, start INTEGER NOT NULL, duration INTEGER NOT NULL, ten INTEGER NOT NULL, day INTEGER NOT NULL, done INTEGER NOT NULL, revision INTEGER NOT NULL)");
         db.execSQL("ALTER TABLE tasks ADD COLUMN reminder_offsets TEXT");
         db.execSQL("ALTER TABLE tasks ADD COLUMN priority INTEGER NOT NULL DEFAULT 3");
         db.execSQL("ALTER TABLE tasks ADD COLUMN completed_at INTEGER NOT NULL DEFAULT 0");
+        db.execSQL("ALTER TABLE tasks ADD COLUMN source_goal_id INTEGER NOT NULL DEFAULT 0");
+        db.execSQL("ALTER TABLE tasks ADD COLUMN generated_day INTEGER NOT NULL DEFAULT 0");
     }
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) db.execSQL("ALTER TABLE tasks ADD COLUMN reminder_offsets TEXT");
@@ -22,6 +24,10 @@ public final class TaskStore extends SQLiteOpenHelper {
         if (oldVersion < 4) {
             db.execSQL("ALTER TABLE tasks ADD COLUMN completed_at INTEGER NOT NULL DEFAULT 0");
             db.execSQL("UPDATE tasks SET completed_at=start WHERE done=1");
+        }
+        if (oldVersion < 5) {
+            db.execSQL("ALTER TABLE tasks ADD COLUMN source_goal_id INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE tasks ADD COLUMN generated_day INTEGER NOT NULL DEFAULT 0");
         }
     }
     public List<Task> all() {
@@ -44,10 +50,14 @@ public final class TaskStore extends SQLiteOpenHelper {
         v.put("ten", t.earlyTen ? 1 : 0); v.put("day", t.earlyDay ? 1 : 0); v.put("done", t.done ? 1 : 0); v.put("revision", t.revision);
         v.put("reminder_offsets", android.text.TextUtils.join(",", t.reminders()));
         v.put("completed_at", t.completedAt);
+        v.put("source_goal_id", t.sourceGoalId); v.put("generated_day", t.generatedDay);
         if (t.id == 0) t.id = getWritableDatabase().insertOrThrow("tasks", null, v);
         else getWritableDatabase().update("tasks", v, "id=?", new String[]{String.valueOf(t.id)});
     }
     public void delete(long id) { getWritableDatabase().delete("tasks", "id=?", new String[]{String.valueOf(id)}); }
+    public boolean hasGeneratedTask(long goalId, long day) {
+        try (Cursor c = getReadableDatabase().query("tasks", new String[]{"id"}, "source_goal_id=? AND generated_day=?", new String[]{String.valueOf(goalId), String.valueOf(day)}, null, null, null)) { return c.moveToFirst(); }
+    }
     private Task read(Cursor c) {
         Task t = new Task();
         t.id = c.getLong(0); t.title = c.getString(1); t.note = c.getString(2); t.start = c.getLong(3);
@@ -55,6 +65,7 @@ public final class TaskStore extends SQLiteOpenHelper {
         t.done = c.getInt(7) != 0; t.revision = c.getLong(8);
         t.priority = c.getInt(c.getColumnIndexOrThrow("priority"));
         t.completedAt = c.getLong(c.getColumnIndexOrThrow("completed_at"));
+        t.sourceGoalId = c.getLong(c.getColumnIndexOrThrow("source_goal_id")); t.generatedDay = c.getLong(c.getColumnIndexOrThrow("generated_day"));
         String offsets = c.getString(c.getColumnIndexOrThrow("reminder_offsets"));
         if (offsets != null) {
             t.reminderMinutes = new java.util.TreeSet<>();

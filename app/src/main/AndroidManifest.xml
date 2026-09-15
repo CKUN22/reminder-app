@@ -9,6 +9,7 @@
         <receiver android:name=".ReminderReceiver" android:exported="false" />
         <activity android:name=".ReminderSettingsActivity" android:exported="false" />
         <activity android:name=".StatisticsActivity" android:exported="false" />
+        <activity android:name=".GoalsActivity" android:exported="false" />
         <receiver android:name=".RestoreReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
