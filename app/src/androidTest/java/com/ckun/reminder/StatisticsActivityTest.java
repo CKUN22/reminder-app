@@ -19,7 +19,12 @@ public class StatisticsActivityTest {
         try {
             instrumentation.runOnMainSync(() -> main.getWindow().getDecorView().findViewWithTag("statistics").performClick());
             Activity stats = instrumentation.waitForMonitorWithTimeout(monitor, 5000); assertNotNull(stats);
-            instrumentation.runOnMainSync(() -> assertEquals("1", ((TextView) stats.getWindow().getDecorView().findViewWithTag("current-week-count")).getText().toString()));
+            instrumentation.runOnMainSync(() -> {
+                assertEquals("1", ((TextView) stats.getWindow().getDecorView().findViewWithTag("current-week-count")).getText().toString());
+                View chart = stats.getWindow().getDecorView().findViewWithTag("weekly-bar-chart"); assertNotNull(chart);
+                assertTrue(chart.getContentDescription().toString().startsWith("近10周完成统计"));
+                assertNotNull(stats.getWindow().getDecorView().findViewWithTag("statistics-scroll"));
+            });
             instrumentation.runOnMainSync(stats::finish);
         } finally { instrumentation.removeMonitor(monitor); instrumentation.runOnMainSync(main::finish); context.deleteDatabase("tasks.db"); }
     }
