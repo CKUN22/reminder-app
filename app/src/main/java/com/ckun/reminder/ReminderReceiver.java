@@ -13,7 +13,7 @@ public final class ReminderReceiver extends BroadcastReceiver {
             if (t == null || t.done || t.revision != intent.getLongExtra("revision", -1)) return;
             ReminderScheduler scheduler = new ReminderScheduler(context);
             if ("COMPLETE".equals(intent.getAction())) {
-                t.done = true; store.save(t); scheduler.cancel(t); return;
+                t.done = true; t.completedAt = System.currentTimeMillis(); store.save(t); scheduler.cancel(t); return;
             }
             int kind = intent.getIntExtra("minutes", -1);
             if (!t.reminders().contains(kind)) return;

@@ -57,7 +57,7 @@ public final class MainActivity extends Activity {
                 t.title = state.getString("title", ""); t.note = state.getString("note", "");
                 t.earlyTen = state.getBoolean("ten"); t.earlyDay = state.getBoolean("day");
                 t.priority = state.getInt("priority", 3);
-                t.done = state.getBoolean("done"); t.revision = state.getLong("revision");
+                t.done = state.getBoolean("done"); t.revision = state.getLong("revision"); t.completedAt = state.getLong("completedAt");
                 if (state.containsKey("reminders")) { t.reminderMinutes = new TreeSet<>(); for (int n : state.getIntArray("reminders")) t.reminderMinutes.add(n); }
                 showEditor(t); originalStart = state.getLong("original");
                 durationInput.setText(state.getString("duration", ""));
@@ -86,7 +86,7 @@ public final class MainActivity extends Activity {
         if (startTimeDialog != null && startTimeDialog.isShowing()) out.putBundle("timePicker", startTimeDialog.selectionState());
         if (editing) {
             out.putInt("priority", draft.priority); out.putLong("id", draft.id); out.putLong("start", draft.start); out.putLong("original", originalStart);
-            out.putLong("revision", draft.revision); out.putBoolean("done", draft.done);
+            out.putLong("revision", draft.revision); out.putLong("completedAt", draft.completedAt); out.putBoolean("done", draft.done);
             out.putString("title", titleInput.getText().toString()); out.putString("note", noteInput.getText().toString());
             out.putString("duration", durationInput.getText().toString()); out.putIntArray("reminders", draft.reminders().stream().mapToInt(Integer::intValue).toArray());
         }
@@ -125,7 +125,11 @@ public final class MainActivity extends Activity {
         editing = false; shell();
         taskTimeLabels.clear();
         page.setPadding(dp(24), dp(20), dp(24), dp(104));
-        dateLabel = text(today(), 13, MUTED); dateLabel.setTag("home-date"); page.addView(dateLabel); gap(12);
+        LinearLayout top = new LinearLayout(this); top.setGravity(Gravity.CENTER_VERTICAL);
+        dateLabel = text(today(), 13, MUTED); dateLabel.setTag("home-date"); top.addView(dateLabel, new LinearLayout.LayoutParams(0, -2, 1));
+        Button stats = button("统计", false, () -> startActivity(new Intent(this, StatisticsActivity.class)));
+        stats.setTag("statistics"); stats.setTextSize(13); stats.setMinHeight(0); stats.setPadding(dp(14), dp(5), dp(14), dp(5));
+        top.addView(stats, new LinearLayout.LayoutParams(-2, dp(36))); page.addView(top); gap(10);
         LinearLayout tabs = new LinearLayout(this);
         Button pending = button("未完成", !completedTab, () -> { completedTab = false; showList(); });
         Button done = button("已完成", completedTab, () -> { completedTab = true; showList(); });
@@ -302,7 +306,7 @@ public final class MainActivity extends Activity {
     }
     private void complete(Task task) {
         Task fresh = store.get(task.id); if (fresh == null) { showList(); return; }
-        fresh.done = true; store.save(fresh); scheduler.cancel(fresh); showList();
+        fresh.done = true; fresh.completedAt = System.currentTimeMillis(); store.save(fresh); scheduler.cancel(fresh); showList();
         Toast.makeText(this, "又完成了一件小事", Toast.LENGTH_SHORT).show();
     }
     private void animateCompletion(Task task, View check, View card) {
@@ -310,7 +314,7 @@ public final class MainActivity extends Activity {
         Task fresh = store.get(task.id); if (fresh == null) { showList(); return; }
         check.setEnabled(false); check.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
         TextView time = taskTimeLabels.get(task.id); if (time != null) time.setTag(null);
-        fresh.done = true; store.save(fresh); scheduler.cancel(fresh);
+        fresh.done = true; fresh.completedAt = System.currentTimeMillis(); store.save(fresh); scheduler.cancel(fresh);
         check.animate().scaleX(1.22f).scaleY(1.22f).rotation(12f).setDuration(140)
                 .setInterpolator(new android.view.animation.OvershootInterpolator()).withEndAction(() ->
                 check.animate().scaleX(.82f).scaleY(.82f).rotation(0f).alpha(0f).setDuration(180).start()).start();
@@ -320,7 +324,7 @@ public final class MainActivity extends Activity {
     }
     private void reopen(Task task) {
         Task fresh = store.get(task.id); if (fresh == null) { showList(); return; }
-        fresh.done = false; store.save(fresh); scheduler.schedule(fresh); completedTab = false; showEditor(fresh);
+        fresh.done = false; fresh.completedAt = 0; store.save(fresh); scheduler.schedule(fresh); completedTab = false; showEditor(fresh);
         Toast.makeText(this, "已改为未完成，过期提醒不会补发", Toast.LENGTH_SHORT).show();
     }
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {

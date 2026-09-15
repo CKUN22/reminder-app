@@ -23,7 +23,7 @@ public class TaskStoreTest {
             assertEquals(0, t.priority); assertEquals(30, t.duration); assertTrue(t.earlyTen); assertFalse(t.done);
             long revision = t.revision; t.title = "散步"; t.start += 86400000; store.save(t);
             assertEquals(revision + 1, store.get(id).revision); assertEquals("散步", store.get(id).title);
-            t.done = true; store.save(t); assertTrue(store.get(id).done);
+            t.done = true; t.completedAt = 123456789L; store.save(t); assertTrue(store.get(id).done); assertEquals(123456789L, store.get(id).completedAt);
             store.delete(id); assertNull(store.get(id)); assertEquals(0, store.all().size());
         }
     }
@@ -58,7 +58,7 @@ public class TaskStoreTest {
             db.execSQL("INSERT INTO tasks VALUES (1, '旧事项', '备注', 2000000000000, 30, 0, 0, 1, 3, '15,75')"); db.setVersion(2);
         }
         try (TaskStore store = new TaskStore(getContext())) {
-            Task task = store.get(1); assertEquals(3, task.priority); assertTrue(task.done); assertEquals("备注", task.note);
+            Task task = store.get(1); assertEquals(3, task.priority); assertTrue(task.done); assertEquals(2000000000000L, task.completedAt); assertEquals("备注", task.note);
             assertEquals(new java.util.TreeSet<>(java.util.List.of(15, 75)), task.reminders());
             for (int i = 0; i < 4; i++) { task.priority = i; store.save(task); assertEquals(i, store.get(1).priority); }
         }

@@ -6,8 +6,8 @@ android {
         applicationId 'com.ckun.reminder'
         minSdk 26
         targetSdk 35
-        versionCode 7
-        versionName '0.2.1'
+        versionCode 8
+        versionName '0.2.2'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
@@ -31,3 +31,17 @@ tasks.register('testReminderRules', JavaExec) {
     mainClass = 'com.ckun.reminder.ReminderRulesTest'
 }
 tasks.named('check') { dependsOn 'testReminderRules' }
+tasks.register('compileStatisticsTests', JavaCompile) {
+    source = files('src/main/java/com/ckun/reminder/Task.java', 'src/main/java/com/ckun/reminder/Statistics.java', '../tests/StatisticsTest.java')
+    classpath = files()
+    destinationDirectory = layout.buildDirectory.dir('statistics-tests')
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+    options.encoding = 'UTF-8'
+}
+tasks.register('testStatistics', JavaExec) {
+    dependsOn 'compileStatisticsTests'
+    classpath = files(layout.buildDirectory.dir('statistics-tests'))
+    mainClass = 'com.ckun.reminder.StatisticsTest'
+}
+tasks.named('check') { dependsOn 'testStatistics' }

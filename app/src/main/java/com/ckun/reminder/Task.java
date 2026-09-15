@@ -1,7 +1,7 @@
 package com.ckun.reminder;
 
 public class Task {
-    public long id, start, revision;
+    public long id, start, revision, completedAt;
     public String title = "", note = "";
     public int duration;
     public int priority = 3;

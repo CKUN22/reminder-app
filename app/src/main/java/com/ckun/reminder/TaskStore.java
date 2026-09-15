@@ -9,15 +9,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TaskStore extends SQLiteOpenHelper {
-    public TaskStore(Context context) { super(context, "tasks.db", null, 3); }
+    public TaskStore(Context context) { super(context, "tasks.db", null, 4); }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, note TEXT NOT NULL, start INTEGER NOT NULL, duration INTEGER NOT NULL, ten INTEGER NOT NULL, day INTEGER NOT NULL, done INTEGER NOT NULL, revision INTEGER NOT NULL)");
         db.execSQL("ALTER TABLE tasks ADD COLUMN reminder_offsets TEXT");
         db.execSQL("ALTER TABLE tasks ADD COLUMN priority INTEGER NOT NULL DEFAULT 3");
+        db.execSQL("ALTER TABLE tasks ADD COLUMN completed_at INTEGER NOT NULL DEFAULT 0");
     }
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) db.execSQL("ALTER TABLE tasks ADD COLUMN reminder_offsets TEXT");
         if (oldVersion < 3) db.execSQL("ALTER TABLE tasks ADD COLUMN priority INTEGER NOT NULL DEFAULT 3");
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE tasks ADD COLUMN completed_at INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("UPDATE tasks SET completed_at=start WHERE done=1");
+        }
     }
     public List<Task> all() {
         List<Task> result = new ArrayList<>();
@@ -38,6 +43,7 @@ public final class TaskStore extends SQLiteOpenHelper {
         v.put("title", t.title); v.put("note", t.note); v.put("start", t.start); v.put("duration", t.duration);
         v.put("ten", t.earlyTen ? 1 : 0); v.put("day", t.earlyDay ? 1 : 0); v.put("done", t.done ? 1 : 0); v.put("revision", t.revision);
         v.put("reminder_offsets", android.text.TextUtils.join(",", t.reminders()));
+        v.put("completed_at", t.completedAt);
         if (t.id == 0) t.id = getWritableDatabase().insertOrThrow("tasks", null, v);
         else getWritableDatabase().update("tasks", v, "id=?", new String[]{String.valueOf(t.id)});
     }
@@ -48,6 +54,7 @@ public final class TaskStore extends SQLiteOpenHelper {
         t.duration = c.getInt(4); t.earlyTen = c.getInt(5) != 0; t.earlyDay = c.getInt(6) != 0;
         t.done = c.getInt(7) != 0; t.revision = c.getLong(8);
         t.priority = c.getInt(c.getColumnIndexOrThrow("priority"));
+        t.completedAt = c.getLong(c.getColumnIndexOrThrow("completed_at"));
         String offsets = c.getString(c.getColumnIndexOrThrow("reminder_offsets"));
         if (offsets != null) {
             t.reminderMinutes = new java.util.TreeSet<>();
