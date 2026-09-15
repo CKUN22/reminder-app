@@ -33,14 +33,17 @@ public final class StatisticsActivity extends Activity {
         LinearLayout hero = new LinearLayout(this); hero.setOrientation(LinearLayout.VERTICAL); hero.setGravity(Gravity.CENTER); hero.setPadding(dp(20), dp(20), dp(20), dp(20)); hero.setBackground(shape(CARD, 28));
         LinearLayout.LayoutParams heroParams = new LinearLayout.LayoutParams(-1, -2); heroParams.topMargin = dp(18); page.addView(hero, heroParams);
         hero.addView(center("本周已完成", 14, MUTED)); TextView number = center(String.valueOf(current), 44, GREEN); number.setTag("current-week-count"); number.setTypeface(Typeface.create("serif", Typeface.BOLD)); hero.addView(number); hero.addView(center("件小事", 14, MUTED));
-        TextView history = text("近 10 周", 17, INK); history.setTypeface(Typeface.create("serif", Typeface.BOLD)); history.setPadding(0, dp(22), 0, dp(8)); page.addView(history);
-        int[] counts = new int[10]; long[] starts = new long[10];
-        for (int i = 0; i < 10; i++) {
-            Calendar start = Calendar.getInstance(); start.setTimeInMillis(thisWeek); start.add(Calendar.DAY_OF_MONTH, -7 * (9 - i));
+        TextView history = text("最近 8 周 · 历史高峰 2 周", 17, INK); history.setTypeface(Typeface.create("serif", Typeface.BOLD)); history.setPadding(0, dp(22), 0, dp(8)); page.addView(history);
+        int[] counts = new int[10]; long[] starts = new long[10]; boolean[] highlights = new boolean[10];
+        for (int i = 0; i < 8; i++) {
+            Calendar start = Calendar.getInstance(); start.setTimeInMillis(thisWeek); start.add(Calendar.DAY_OF_MONTH, -7 * i);
             starts[i] = start.getTimeInMillis(); counts[i] = Statistics.completedInWeek(tasks, starts[i]);
         }
-        WeeklyBarChart chart = new WeeklyBarChart(this, counts, starts); chart.setTag("weekly-bar-chart"); chart.setBackground(shape(CARD, 24));
-        page.addView(chart, new LinearLayout.LayoutParams(-1, dp(270)));
+        Calendar cutoff = Calendar.getInstance(); cutoff.setTimeInMillis(thisWeek); cutoff.add(Calendar.DAY_OF_MONTH, -7 * 7);
+        List<Statistics.WeekCount> peaks = Statistics.topHistoricalWeeks(tasks, cutoff.getTimeInMillis(), 2);
+        for (int i = 0; i < 2; i++) { highlights[8 + i] = true; if (i < peaks.size()) { starts[8 + i] = peaks.get(i).start; counts[8 + i] = peaks.get(i).count; } }
+        WeeklyBarChart chart = new WeeklyBarChart(this, counts, starts, highlights); chart.setTag("weekly-bar-chart"); chart.setBackground(shape(CARD, 24));
+        page.addView(chart, new LinearLayout.LayoutParams(-1, dp(390)));
     }
     private TextView center(String value, int size, int color) { TextView view = text(value, size, color); view.setGravity(Gravity.CENTER); return view; }
 }

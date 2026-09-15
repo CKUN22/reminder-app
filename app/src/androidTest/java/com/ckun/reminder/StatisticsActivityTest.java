@@ -22,7 +22,7 @@ public class StatisticsActivityTest {
             instrumentation.runOnMainSync(() -> {
                 assertEquals("1", ((TextView) stats.getWindow().getDecorView().findViewWithTag("current-week-count")).getText().toString());
                 View chart = stats.getWindow().getDecorView().findViewWithTag("weekly-bar-chart"); assertNotNull(chart);
-                assertTrue(chart.getContentDescription().toString().startsWith("近10周完成统计"));
+                assertTrue(chart.getContentDescription().toString().startsWith("10周完成统计，最近8周和历史高峰2周"));
                 assertNotNull(stats.getWindow().getDecorView().findViewWithTag("statistics-scroll"));
             });
             instrumentation.runOnMainSync(stats::finish);
