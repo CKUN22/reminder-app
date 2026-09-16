@@ -29,7 +29,7 @@ final class AgendaCalendar extends LinearLayout {
     private final Button handle;
 
     @android.annotation.SuppressLint("ClickableViewAccessibility") // Taps return false to Button's native performClick; swipes have an equivalent click action.
-    AgendaCalendar(Context context, long selected, boolean week, boolean completed, List<Task> tasks, Selection selection, ModeChange modeChange) {
+    AgendaCalendar(Context context, long selected, boolean week, List<Task> tasks, Selection selection, ModeChange modeChange) {
         super(context); this.selected = selected; this.week = week; this.selection = selection; this.modeChange = modeChange;
         setOrientation(VERTICAL); setTag("agenda-calendar");
         LinearLayout header = new LinearLayout(context); header.setGravity(Gravity.CENTER_VERTICAL);
@@ -65,7 +65,7 @@ final class AgendaCalendar extends LinearLayout {
                 LinearLayout dots = new LinearLayout(context); dots.setGravity(Gravity.CENTER);
                 for (int priority = 0; priority < 4; priority++) {
                     boolean exists = false;
-                    for (Task task : tasks) if (task.done == completed && task.priorityIndex() == priority && sameDay(task.start, day)) { exists = true; break; }
+                    for (Task task : tasks) if (task.priorityIndex() == priority && sameDay(task.start, day)) { exists = true; break; }
                     if (exists) {
                         View dot = new View(context); dot.setBackground(shape(active ? Color.WHITE : Task.PRIORITY_COLORS[priority], 3));
                         LayoutParams params = new LayoutParams(dp(5), dp(5)); params.setMargins(dp(1), 0, dp(1), 0); dots.addView(dot, params);

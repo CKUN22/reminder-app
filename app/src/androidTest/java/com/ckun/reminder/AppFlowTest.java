@@ -130,7 +130,7 @@ public class AppFlowTest {
             try (TaskStore store = new TaskStore(context)) { assertEquals(60, store.all().get(0).duration); assertEquals("更新后的备注", store.all().get(0).note); }
             click(activity, "✓  标记完成");
             try (TaskStore store = new TaskStore(context)) { assertTrue(store.all().get(0).done); }
-            click(activity, "已完成"); screenshot("completed.png");
+            screenshot("completed.png");
             instrumentation.runOnMainSync(() -> {
                 for (View v : all(activity.getWindow().getDecorView())) if (v instanceof TextView && ((TextView) v).getText().toString().equals("读半小时书")) { ((View) v.getParent()).performClick(); return; }
             }); instrumentation.waitForIdleSync(); click(activity, "改为未完成");

@@ -45,7 +45,7 @@ public class AgendaCalendarTest {
             });
         } finally { instrumentation.runOnMainSync(activity::finish); }
     }
-    @Test public void selectedDayFiltersBothTabsAndHandleRespondsToSwipe() {
+    @Test public void selectedDayShowsOpenThenCompletedAndHandleRespondsToSwipe() {
         Task today = new Task(), tomorrow = new Task();
         today.title = "今天的事项"; today.start = System.currentTimeMillis(); today.priority = 0;
         Calendar next = Calendar.getInstance(); next.add(Calendar.DATE, 1);
@@ -66,9 +66,10 @@ public class AgendaCalendarTest {
                 root.findViewWithTag("agenda-handle").performClick();
                 assertSame("mode toggle must not rebuild and flash the calendar", calendar, root.findViewWithTag("agenda-calendar"));
                 activity.getWindow().getDecorView().findViewWithTag("complete-" + today.id).performClick();
-                assertNull(activity.getWindow().getDecorView().findViewWithTag("task-time-" + today.id));
-                clickText(activity.getWindow().getDecorView(), "已完成");
                 assertNotNull(activity.getWindow().getDecorView().findViewWithTag("task-time-" + today.id));
+                assertEquals(.48f, ((View) activity.getWindow().getDecorView().findViewWithTag("task-card-" + today.id).getParent()).getAlpha(), 0f);
+                assertNull(findText(activity.getWindow().getDecorView(), "未完成"));
+                assertNull(findText(activity.getWindow().getDecorView(), "已完成"));
                 String tag = "day-" + new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date(tomorrow.start));
                 activity.getWindow().getDecorView().findViewWithTag(tag).performClick();
                 assertNotNull(activity.getWindow().getDecorView().findViewWithTag("task-time-" + tomorrow.id));
@@ -113,11 +114,11 @@ public class AgendaCalendarTest {
         instrumentation.runOnMainSync(() -> {
             Calendar date = Calendar.getInstance(); date.clear(); date.set(2028, Calendar.FEBRUARY, 29);
             long[] selected = {0}; boolean[] week = {false};
-            AgendaCalendar calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, false, new ArrayList<>(), (d, w) -> { selected[0] = d; week[0] = w; }, w -> week[0] = w);
+            AgendaCalendar calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, new ArrayList<>(), (d, w) -> { selected[0] = d; week[0] = w; }, w -> week[0] = w);
             assertNotNull(calendar.findViewWithTag("day-2028-02-29"));
             clickText(calendar, "›"); date.setTimeInMillis(selected[0]); assertEquals(Calendar.MARCH, date.get(Calendar.MONTH)); assertEquals(29, date.get(Calendar.DATE));
             date.set(2028, Calendar.DECEMBER, 31);
-            calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, false, new ArrayList<>(), (d, w) -> selected[0] = d, w -> week[0] = w);
+            calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, new ArrayList<>(), (d, w) -> selected[0] = d, w -> week[0] = w);
             clickText(calendar, "›"); date.setTimeInMillis(selected[0]); assertEquals(2029, date.get(Calendar.YEAR)); assertEquals(Calendar.JANUARY, date.get(Calendar.MONTH));
         });
     }

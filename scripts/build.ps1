@@ -8,7 +8,7 @@ if (-not $env:ANDROID_HOME) { throw 'Set ANDROID_HOME to an Android SDK containi
 $env:GRADLE_USER_HOME = Join-Path $projectRoot '.tools\gradle-home'
 & (Join-Path $PSScriptRoot 'test.ps1')
 $gradleCommand = if (Test-Path '.tools\gradle-8.11.1\bin\gradle.bat') { '.tools\gradle-8.11.1\bin\gradle.bat' } else { '.\gradlew.bat' }
-& $gradleCommand assembleDebug lintDebug testReminderRules assembleDebugAndroidTest --console=plain
+& $gradleCommand assembleDebug lintDebug testReminderRules testAgendaRules assembleDebugAndroidTest --console=plain
 if ($LASTEXITCODE -ne 0) { throw 'Android build or validation failed' }
 if ($DeviceTests) {
     & $gradleCommand connectedDebugAndroidTest --console=plain

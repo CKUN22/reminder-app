@@ -29,7 +29,7 @@ public final class MainActivity extends Activity {
     private boolean shownNotifications, shownExact;
     private TaskStore store;
     private ReminderScheduler scheduler;
-    private boolean completedTab, editing, exactBefore;
+    private boolean editing, exactBefore;
     private Task draft;
     private long originalStart;
     private EditText titleInput, noteInput, durationInput;
@@ -51,7 +51,6 @@ public final class MainActivity extends Activity {
         scheduler.restore();
         GoalGenerator.ensureToday(this, store, scheduler, System.currentTimeMillis());
         if (state != null) {
-            completedTab = state.getBoolean("tab");
             selectedDay = state.getLong("selectedDay", selectedDay); weekMode = state.getBoolean("weekMode");
             if (state.getBoolean("editing")) {
                 Task t = new Task(); t.id = state.getLong("id"); t.start = state.getLong("start");
@@ -85,7 +84,7 @@ public final class MainActivity extends Activity {
     @Override protected void onPause() { super.onPause(); handler.removeCallbacks(tick); }
     @Override protected void onDestroy() { if (startTimeDialog != null) startTimeDialog.dismiss(); store.close(); super.onDestroy(); }
     @Override protected void onSaveInstanceState(Bundle out) {
-        super.onSaveInstanceState(out); out.putLong("selectedDay", selectedDay); out.putBoolean("weekMode", weekMode); out.putBoolean("tab", completedTab); out.putBoolean("editing", editing);
+        super.onSaveInstanceState(out); out.putLong("selectedDay", selectedDay); out.putBoolean("weekMode", weekMode); out.putBoolean("editing", editing);
         if (startTimeDialog != null && startTimeDialog.isShowing()) out.putBundle("timePicker", startTimeDialog.selectionState());
         if (editing) {
             out.putInt("priority", draft.priority); out.putLong("id", draft.id); out.putLong("start", draft.start); out.putLong("original", originalStart);
@@ -139,18 +138,13 @@ public final class MainActivity extends Activity {
         Button stats = button("统计", false, () -> startActivity(new Intent(this, StatisticsActivity.class)));
         stats.setTag("statistics"); stats.setTextSize(13); stats.setMinHeight(0); stats.setPadding(dp(14), dp(5), dp(14), dp(5));
         top.addView(stats, new LinearLayout.LayoutParams(-2, dp(36))); page.addView(top); gap(10);
-        LinearLayout tabs = new LinearLayout(this);
-        Button pending = button("未完成", !completedTab, () -> { completedTab = false; showList(); });
-        Button done = button("已完成", completedTab, () -> { completedTab = true; showList(); });
-        tabs.addView(pending, new LinearLayout.LayoutParams(0, dp(52), 1));
-        LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(0, dp(52), 1); tabParams.leftMargin = dp(10); tabs.addView(done, tabParams); page.addView(tabs); gap(16);
         shownNotifications = scheduler.notificationsAllowed(); shownExact = scheduler.exactAllowed();
         if (!shownNotifications || !shownExact) {
             String warning = !scheduler.notificationsAllowed() ? "通知未开启 · 点此设置提醒权限" : "精确提醒未开启 · 提醒可能延迟";
             Button banner = button(warning, false, this::permissions); banner.setTextSize(13); page.addView(banner); gap(16);
         }
         List<Task> tasks = store.all();
-        page.addView(new AgendaCalendar(this, selectedDay, weekMode, completedTab, tasks,
+        page.addView(new AgendaCalendar(this, selectedDay, weekMode, tasks,
                 (day, week) -> { selectedDay = day; weekMode = week; showList(); }, week -> weekMode = week));
         scroll.removeView(page); screen.removeView(scroll);
         LinearLayout layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
@@ -159,18 +153,17 @@ public final class MainActivity extends Activity {
         page = new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(20), dp(8), dp(20), dp(100));
         scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.addView(page);
         layout.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-        int count = 0;
+        List<Task> dayTasks = AgendaRules.forDay(tasks, selectedDay);
+        int count = dayTasks.size();
         displayedTasks = tasks;
-        for (Task t : tasks) if (t.done == completedTab && AgendaCalendar.sameDay(t.start, selectedDay)) count++;
-        page.addView(text(new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date(selectedDay)) + (completedTab ? " · 已完成 " : " · 日程 ") + count, 15, INK)); gap(8);
+        page.addView(text(new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date(selectedDay)) + " · 当日事项 " + count, 15, INK)); gap(8);
         if (count == 0) {
             LinearLayout empty = new LinearLayout(this); empty.setOrientation(LinearLayout.VERTICAL); empty.setPadding(dp(22), dp(32), dp(22), dp(32)); empty.setBackground(shape(CARD, 28));
             TextView mark = text("✓", 44, GREEN); mark.setGravity(Gravity.CENTER); empty.addView(mark);
-            TextView label = text(completedTab ? "每一件完成，都值得记录" : "这一天暂无待办", 18, INK); label.setGravity(Gravity.CENTER); empty.addView(label);
-            TextView help = text(completedTab ? "这一天完成的事项会出现在这里" : "添加开始时间，让提醒替你记住", 13, MUTED); help.setGravity(Gravity.CENTER); empty.addView(help); page.addView(empty);
+            TextView label = text("这一天暂无事项", 18, INK); label.setGravity(Gravity.CENTER); empty.addView(label);
+            TextView help = text("添加开始时间，让提醒替你记住", 13, MUTED); help.setGravity(Gravity.CENTER); empty.addView(help); page.addView(empty);
         }
-        for (Task t : tasks) {
-            if (t.done != completedTab || !AgendaCalendar.sameDay(t.start, selectedDay)) continue;
+        for (Task t : dayTasks) {
             LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(12), dp(5), dp(12), dp(5)); card.setBackground(shape(CARD, 24));
             card.setTag("task-card-" + t.id);
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
@@ -179,6 +172,7 @@ public final class MainActivity extends Activity {
             LinearLayout.LayoutParams stripeParams = new LinearLayout.LayoutParams(dp(4), dp(42)); stripeParams.rightMargin = dp(3); row.addView(stripe, stripeParams);
             row.addView(card, new LinearLayout.LayoutParams(0, -2, 1));
             row.setPadding(dp(9), dp(2), dp(7), dp(2)); row.setBackground(shape(CARD, 24));
+            if (t.done) { row.setAlpha(.48f); row.setContentDescription("已完成：" + t.title); }
             TextView time = text("", 12, GREEN); time.setTag("task-time-" + t.id); taskTimeLabels.put(t.id, time); updateTaskTime(t, time); card.addView(time);
             TextView title = text(t.title, 16, INK); title.setTypeface(Typeface.create("serif", Typeface.BOLD)); card.addView(title);
             if (t.duration > 0) card.addView(text("预计 " + t.duration + " 分钟 · 至 " + format(ReminderRules.end(t)), 13, MUTED));
@@ -310,7 +304,7 @@ public final class MainActivity extends Activity {
         updateTime();
         if (draft.id != 0) scheduler.cancel(store.get(draft.id));
         store.save(draft); scheduler.schedule(draft); boolean needsPermission = !draft.done && !draft.reminders().isEmpty() && (!scheduler.notificationsAllowed() || !scheduler.exactAllowed());
-        completedTab = draft.done; selectedDay = draft.start; showList();
+        selectedDay = draft.start; showList();
         Toast.makeText(this, "事项已保存", Toast.LENGTH_SHORT).show();
         if (needsPermission) permissions();
     }
@@ -334,7 +328,7 @@ public final class MainActivity extends Activity {
     }
     private void reopen(Task task) {
         Task fresh = store.get(task.id); if (fresh == null) { showList(); return; }
-        fresh.done = false; fresh.completedAt = 0; store.save(fresh); scheduler.schedule(fresh); completedTab = false; showEditor(fresh);
+        fresh.done = false; fresh.completedAt = 0; store.save(fresh); scheduler.schedule(fresh); showEditor(fresh);
         Toast.makeText(this, "已改为未完成，过期提醒不会补发", Toast.LENGTH_SHORT).show();
     }
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {

@@ -73,3 +73,17 @@ tasks.register('testCourses', JavaExec) {
     mainClass = 'com.ckun.reminder.CourseRulesTest'
 }
 tasks.named('check') { dependsOn 'testCourses' }
+tasks.register('compileAgendaTests', JavaCompile) {
+    source = files('src/main/java/com/ckun/reminder/Task.java', 'src/main/java/com/ckun/reminder/AgendaRules.java', '../tests/AgendaRulesTest.java')
+    classpath = files()
+    destinationDirectory = layout.buildDirectory.dir('agenda-tests')
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+    options.encoding = 'UTF-8'
+}
+tasks.register('testAgendaRules', JavaExec) {
+    dependsOn 'compileAgendaTests'
+    classpath = files(layout.buildDirectory.dir('agenda-tests'))
+    mainClass = 'com.ckun.reminder.AgendaRulesTest'
+}
+tasks.named('check') { dependsOn 'testAgendaRules' }
