@@ -59,7 +59,7 @@ public final class MainActivity extends Activity {
                 t.earlyTen = state.getBoolean("ten"); t.earlyDay = state.getBoolean("day");
                 t.priority = state.getInt("priority", 3);
                 t.done = state.getBoolean("done"); t.revision = state.getLong("revision"); t.completedAt = state.getLong("completedAt");
-                t.sourceGoalId = state.getLong("sourceGoalId"); t.generatedDay = state.getLong("generatedDay");
+                t.sourceGoalId = state.getLong("sourceGoalId"); t.sourceCourseId = state.getLong("sourceCourseId"); t.generatedDay = state.getLong("generatedDay");
                 if (state.containsKey("reminders")) { t.reminderMinutes = new TreeSet<>(); for (int n : state.getIntArray("reminders")) t.reminderMinutes.add(n); }
                 showEditor(t); originalStart = state.getLong("original");
                 durationInput.setText(state.getString("duration", ""));
@@ -89,7 +89,7 @@ public final class MainActivity extends Activity {
         if (startTimeDialog != null && startTimeDialog.isShowing()) out.putBundle("timePicker", startTimeDialog.selectionState());
         if (editing) {
             out.putInt("priority", draft.priority); out.putLong("id", draft.id); out.putLong("start", draft.start); out.putLong("original", originalStart);
-            out.putLong("revision", draft.revision); out.putLong("completedAt", draft.completedAt); out.putLong("sourceGoalId", draft.sourceGoalId); out.putLong("generatedDay", draft.generatedDay); out.putBoolean("done", draft.done);
+            out.putLong("revision", draft.revision); out.putLong("completedAt", draft.completedAt); out.putLong("sourceGoalId", draft.sourceGoalId); out.putLong("sourceCourseId", draft.sourceCourseId); out.putLong("generatedDay", draft.generatedDay); out.putBoolean("done", draft.done);
             out.putString("title", titleInput.getText().toString()); out.putString("note", noteInput.getText().toString());
             out.putString("duration", durationInput.getText().toString()); out.putIntArray("reminders", draft.reminders().stream().mapToInt(Integer::intValue).toArray());
         }
@@ -133,6 +133,9 @@ public final class MainActivity extends Activity {
         Button goals = button("目标", false, () -> startActivity(new Intent(this, GoalsActivity.class)));
         goals.setTag("goals"); goals.setTextSize(13); goals.setMinHeight(0); goals.setPadding(dp(14), dp(5), dp(14), dp(5));
         LinearLayout.LayoutParams goalParams = new LinearLayout.LayoutParams(-2, dp(36)); goalParams.rightMargin = dp(8); top.addView(goals, goalParams);
+        Button timetable = button("课程表", false, () -> startActivity(new Intent(this, TimetableActivity.class)));
+        timetable.setTag("timetable"); timetable.setTextSize(13); timetable.setMinHeight(0); timetable.setPadding(dp(14), dp(5), dp(14), dp(5));
+        LinearLayout.LayoutParams timetableParams = new LinearLayout.LayoutParams(-2, dp(36)); timetableParams.rightMargin = dp(8); top.addView(timetable, timetableParams);
         Button stats = button("统计", false, () -> startActivity(new Intent(this, StatisticsActivity.class)));
         stats.setTag("statistics"); stats.setTextSize(13); stats.setMinHeight(0); stats.setPadding(dp(14), dp(5), dp(14), dp(5));
         top.addView(stats, new LinearLayout.LayoutParams(-2, dp(36))); page.addView(top); gap(10);

@@ -15,6 +15,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Statistics tests failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Goal test compilation failed' }
 & (Join-Path $javaBin 'java.exe') -cp $testOutput com.ckun.reminder.GoalRulesTest
 if ($LASTEXITCODE -ne 0) { throw 'Goal tests failed' }
+& (Join-Path $javaBin 'javac.exe') -encoding UTF-8 -cp $testOutput -d $testOutput (Join-Path $projectRoot 'app\src\main\java\com\ckun\reminder\Course.java') (Join-Path $projectRoot 'app\src\main\java\com\ckun\reminder\CourseRules.java') (Join-Path $projectRoot 'tests\CourseRulesTest.java')
+if ($LASTEXITCODE -ne 0) { throw 'Course test compilation failed' }
+& (Join-Path $javaBin 'java.exe') -cp $testOutput com.ckun.reminder.CourseRulesTest
+if ($LASTEXITCODE -ne 0) { throw 'Course tests failed' }
 [xml]$manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $projectRoot 'app\src\main\AndroidManifest.xml')
 $androidNamespace = 'http://schemas.android.com/apk/res/android'
 $permissions = @($manifest.manifest.'uses-permission' | ForEach-Object { $_.GetAttribute('name', $androidNamespace) })
