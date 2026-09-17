@@ -8,13 +8,13 @@ import java.util.*;
 
 /** Compact phone-first timetable: all seven days and thirteen periods fit in one viewport. */
 public final class TimetableGridView extends View {
-    public interface Listener { void onCourse(Course course); void onEmpty(int weekday,int period); }
+    public interface Listener { void onCourse(Course course); void onEmpty(int weekday,int period); void onNavigate(int direction); }
     private static final int INK=0xff4A3E35,MUTED=0xff8E7D70,GREEN=0xff52694D,LINE=0xffE8DED1,CREAM=0xffFBF4E9;
     private static final int[] COLORS={0xffAFC4A6,0xffE7ADA5,0xffEBC98F,0xffA9C0DC,0xffC8B8D5,0xffA8D1CB,0xffD7B99C,0xffBBC49D};
     private static final String[] DAYS={"一","二","三","四","五","六","日"};
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final List<Hit> hits=new ArrayList<>();private final float density;
     private List<Course> courses=List.of();private Map<Long,Integer> homework=Map.of();private int week=1;private Listener listener;
-    private float gutter,header,column,row,gap;
+    private float gutter,header,column,row,gap,touchDownX,touchDownY;
     private static final class Hit{final RectF rect;final Course course;Hit(RectF r,Course c){rect=r;course=c;}}
     public TimetableGridView(Context context){super(context);density=getResources().getDisplayMetrics().density;setClickable(true);setContentDescription("每周课程表网格");}
     public void setData(List<Course> values,int selectedWeek,Listener value){courses=new ArrayList<>(values);week=selectedWeek;listener=value;invalidate();}
@@ -29,6 +29,6 @@ public final class TimetableGridView extends View {
     private void wrapped(Canvas c,String value,float x,float baseline,float maxWidth,float size,int color,boolean bold,int lines){paint.setTextSize(size);paint.setColor(color);paint.setTypeface(Typeface.create("sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));String rest=value;float y=baseline;for(int n=0;n<lines&&!rest.isEmpty();n++){int count=paint.breakText(rest,true,maxWidth,null);if(count<1)return;String part=rest.substring(0,count);if(n==lines-1&&count<rest.length()&&count>1)part=part.substring(0,count-1)+"…";c.drawText(part,x,y,paint);rest=rest.substring(count);y+=size*1.18f;}}
     private void singleLine(Canvas c,String value,float x,float baseline,float maxWidth,float size,int color){paint.setTextSize(size);paint.setColor(color);paint.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL));int count=paint.breakText(value,true,maxWidth,null);String shown=value.substring(0,count);if(count<value.length()&&count>1)shown=shown.substring(0,count-1)+"…";c.drawText(shown,x,baseline,paint);}
     private void center(Canvas c,String value,float x,float baseline,float size,int color,boolean bold){paint.setTextSize(size);paint.setColor(color);paint.setTypeface(Typeface.create("serif",bold?Typeface.BOLD:Typeface.NORMAL));paint.setTextAlign(Paint.Align.CENTER);c.drawText(value,x,baseline,paint);paint.setTextAlign(Paint.Align.LEFT);}
-    @Override public boolean onTouchEvent(MotionEvent event){if(event.getAction()!=MotionEvent.ACTION_UP)return true;for(Hit hit:hits)if(hit.rect.contains(event.getX(),event.getY())){if(listener!=null)listener.onCourse(hit.course);performClick();return true;}if(event.getX()>=gutter&&event.getY()>=header){int day=Math.min(7,Math.max(1,(int)((event.getX()-gutter)/column)+1));int period=Math.min(13,Math.max(1,(int)((event.getY()-header)/row)+1));if(listener!=null)listener.onEmpty(day,period);performClick();}return true;}
+    @Override public boolean onTouchEvent(MotionEvent event){if(event.getAction()==MotionEvent.ACTION_DOWN){touchDownX=event.getX();touchDownY=event.getY();return true;}if(event.getAction()!=MotionEvent.ACTION_UP)return true;float dx=event.getX()-touchDownX,dy=event.getY()-touchDownY;if(Math.abs(dx)>dp(40)&&Math.abs(dx)>Math.abs(dy)){if(listener!=null)listener.onNavigate(dx<0?1:-1);performClick();return true;}for(Hit hit:hits)if(hit.rect.contains(event.getX(),event.getY())){if(listener!=null)listener.onCourse(hit.course);performClick();return true;}if(event.getX()>=gutter&&event.getY()>=header){int day=Math.min(7,Math.max(1,(int)((event.getX()-gutter)/column)+1));int period=Math.min(13,Math.max(1,(int)((event.getY()-header)/row)+1));if(listener!=null)listener.onEmpty(day,period);performClick();}return true;}
     @Override public boolean performClick(){super.performClick();return true;}
 }

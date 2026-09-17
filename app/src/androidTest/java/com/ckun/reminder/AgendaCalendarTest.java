@@ -21,7 +21,7 @@ public class AgendaCalendarTest {
             instrumentation.runOnMainSync(() -> {
                 View root = activity.getWindow().getDecorView();
                 TextView homeDate = root.findViewWithTag("home-date"); assertNotNull(homeDate); assertTrue(homeDate.getText().toString().matches("\\d{1,2}月\\d{1,2}日")); assertEquals(1, homeDate.getMaxLines());
-                assertEquals(dp(34), root.findViewWithTag("goals").getLayoutParams().height); assertEquals(dp(34), root.findViewWithTag("timetable").getLayoutParams().height); assertEquals(dp(34), root.findViewWithTag("statistics").getLayoutParams().height);
+                assertEquals(dp(30), root.findViewWithTag("goals").getLayoutParams().height); assertEquals(dp(30), root.findViewWithTag("timetable").getLayoutParams().height); assertEquals(dp(30), root.findViewWithTag("statistics").getLayoutParams().height);
                 assertNotNull(root.findViewWithTag("task-card-" + task.id));
                 assertNull(findText(root, "轻待办"));
                 assertNull(findText(root, "仅保存在此设备 · 无需联网"));
@@ -121,6 +121,16 @@ public class AgendaCalendarTest {
             date.set(2028, Calendar.DECEMBER, 31);
             calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, new ArrayList<>(), (d, w) -> selected[0] = d, w -> week[0] = w);
             clickText(calendar, "›"); date.setTimeInMillis(selected[0]); assertEquals(2029, date.get(Calendar.YEAR)); assertEquals(Calendar.JANUARY, date.get(Calendar.MONTH));
+            date.clear(); date.set(2028, Calendar.JUNE, 15); selected[0] = 0;
+            calendar = new AgendaCalendar(context, date.getTimeInMillis(), false, new ArrayList<>(), (d, w) -> selected[0] = d, w -> {});
+            long now = SystemClock.uptimeMillis(); calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 200, 100, 0)); calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 50, MotionEvent.ACTION_UP, 80, 100, 0));
+            date.setTimeInMillis(selected[0]); assertEquals(Calendar.JULY, date.get(Calendar.MONTH));
+        });
+    }
+    @Test public void eachDayShowsOnlyOneHighestPriorityDot() {
+        instrumentation.runOnMainSync(() -> {
+            Calendar day=Calendar.getInstance();day.clear();day.set(2028,Calendar.JUNE,15,9,0);Task normal=new Task();normal.start=day.getTimeInMillis();normal.priority=3;Task urgent=new Task();urgent.start=day.getTimeInMillis();urgent.priority=0;
+            AgendaCalendar calendar=new AgendaCalendar(context,day.getTimeInMillis(),false,List.of(normal,urgent),(d,w)->{},w->{});View dot=calendar.findViewWithTag("day-dot-2028-06-15");assertNotNull(dot);assertEquals(1,((ViewGroup)dot.getParent()).getChildCount());
         });
     }
     private boolean clickText(View view, String value) {

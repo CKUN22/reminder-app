@@ -20,7 +20,7 @@ final class AgendaCalendar extends LinearLayout {
     private boolean week;
     private final Selection selection;
     private final ModeChange modeChange;
-    private float gestureDownY;
+    private float gestureDownX, gestureDownY;
     private boolean trackingGesture;
     private float dragStartProgress, expansionProgress;
     private final FrameLayout gridViewport;
@@ -63,14 +63,8 @@ final class AgendaCalendar extends LinearLayout {
                 if (active) cell.setBackground(shape(GREEN, 20));
                 cell.addView(label(String.valueOf(cursor.get(Calendar.DAY_OF_MONTH)), 15, active ? Color.WHITE : cursor.get(Calendar.MONTH) == monthIndex ? INK : MUTED));
                 LinearLayout dots = new LinearLayout(context); dots.setGravity(Gravity.CENTER);
-                for (int priority = 0; priority < 4; priority++) {
-                    boolean exists = false;
-                    for (Task task : tasks) if (task.priorityIndex() == priority && sameDay(task.start, day)) { exists = true; break; }
-                    if (exists) {
-                        View dot = new View(context); dot.setBackground(shape(active ? Color.WHITE : Task.PRIORITY_COLORS[priority], 3));
-                        LayoutParams params = new LayoutParams(dp(5), dp(5)); params.setMargins(dp(1), 0, dp(1), 0); dots.addView(dot, params);
-                    }
-                }
+                int priority = AgendaRules.highestPriorityForDay(tasks, day);
+                if (priority >= 0) { View dot = new View(context); dot.setTag("day-dot-" + new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date(day))); dot.setBackground(shape(active ? Color.WHITE : Task.PRIORITY_COLORS[priority], 3)); dots.addView(dot, new LayoutParams(dp(5), dp(5))); }
                 cell.addView(dots, new LayoutParams(-1, dp(8)));
                 cell.setContentDescription(new SimpleDateFormat("yyyy年M月d日", Locale.CHINA).format(new Date(day)) + (active ? "，已选择" : ""));
                 cell.setFocusable(true); cell.setOnClickListener(v -> selection.select(day, week));
@@ -86,12 +80,14 @@ final class AgendaCalendar extends LinearLayout {
     }
     @Override public boolean dispatchTouchEvent(MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-            gestureDownY = event.getRawY(); dragStartProgress = expansionProgress; trackingGesture = true;
+            gestureDownX = event.getRawX(); gestureDownY = event.getRawY(); dragStartProgress = expansionProgress; trackingGesture = true;
             getParent().requestDisallowInterceptTouchEvent(true);
         } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE && trackingGesture) {
-            updateDrag(event.getRawY());
+            if (Math.abs(event.getRawY() - gestureDownY) > Math.abs(event.getRawX() - gestureDownX)) updateDrag(event.getRawY());
         } else if (event.getActionMasked() == MotionEvent.ACTION_UP && trackingGesture) {
-            float distance = event.getRawY() - gestureDownY; updateDrag(event.getRawY()); trackingGesture = false;
+            float horizontal = event.getRawX() - gestureDownX, distance = event.getRawY() - gestureDownY; trackingGesture = false;
+            if (Math.abs(horizontal) > dp(40) && Math.abs(horizontal) > Math.abs(distance)) { applyExpansion(dragStartProgress); move(horizontal < 0 ? 1 : -1); return true; }
+            updateDrag(event.getRawY());
             if (Math.abs(distance) > dp(8)) { settleToNearest(); return true; }
         } else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) trackingGesture = false;
         return super.dispatchTouchEvent(event);

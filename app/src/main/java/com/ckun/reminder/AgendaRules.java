@@ -5,6 +5,12 @@ import java.util.*;
 final class AgendaRules {
     private AgendaRules() {}
 
+    static int highestPriorityForDay(List<Task> tasks, long day) {
+        int highest = -1;
+        for (Task task : tasks) if (sameDay(task.start, day) && (highest < 0 || task.priorityIndex() < highest)) highest = task.priorityIndex();
+        return highest;
+    }
+
     static List<Task> forDay(List<Task> tasks, long day) {
         List<Task> result = new ArrayList<>();
         for (Task task : tasks) if (sameDay(task.start, day)) result.add(task);
