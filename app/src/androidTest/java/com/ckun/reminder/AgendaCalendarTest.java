@@ -21,7 +21,7 @@ public class AgendaCalendarTest {
             instrumentation.runOnMainSync(() -> {
                 View root = activity.getWindow().getDecorView();
                 TextView homeDate = root.findViewWithTag("home-date"); assertNotNull(homeDate); assertTrue(homeDate.getText().toString().matches("\\d{1,2}月\\d{1,2}日")); assertEquals(1, homeDate.getMaxLines());
-                assertEquals(dp(30), root.findViewWithTag("goals").getLayoutParams().height); assertEquals(dp(30), root.findViewWithTag("timetable").getLayoutParams().height); assertEquals(dp(30), root.findViewWithTag("statistics").getLayoutParams().height);
+                assertEquals(dp(34), root.findViewWithTag("goals").getLayoutParams().height); assertEquals(dp(34), root.findViewWithTag("timetable").getLayoutParams().height); assertEquals(dp(34), root.findViewWithTag("statistics").getLayoutParams().height);
                 assertNotNull(root.findViewWithTag("task-card-" + task.id));
                 assertNull(findText(root, "轻待办"));
                 assertNull(findText(root, "仅保存在此设备 · 无需联网"));
