@@ -6,6 +6,7 @@ public final class CourseRulesTest {
     private static int assertions;
     private static void equal(Object expected,Object actual){assertions++;if(!java.util.Objects.equals(expected,actual))throw new AssertionError("Expected "+expected+", got "+actual);}
     public static void main(String[] args){
+        Course location=new Course();equal("@地点待定",CourseRules.locationLabel(location));location.location="松2105";equal("@松2105",CourseRules.locationLabel(location));
         equal(1,CourseRules.weekOf(LocalDate.of(2026,9,7)));
         equal(0,CourseRules.weekOf(LocalDate.of(2026,9,6)));
         equal(16,CourseRules.weekOf(LocalDate.of(2026,12,21)));

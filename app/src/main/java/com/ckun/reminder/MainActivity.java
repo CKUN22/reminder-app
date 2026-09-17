@@ -128,16 +128,16 @@ public final class MainActivity extends Activity {
         taskTimeLabels.clear();
         page.setPadding(dp(24), dp(20), dp(24), dp(104));
         LinearLayout top = new LinearLayout(this); top.setGravity(Gravity.CENTER_VERTICAL);
-        dateLabel = text(today(), 13, MUTED); dateLabel.setTag("home-date"); top.addView(dateLabel, new LinearLayout.LayoutParams(0, -2, 1));
+        dateLabel = text(today(), 13, MUTED); dateLabel.setTag("home-date"); dateLabel.setSingleLine(true); top.addView(dateLabel, new LinearLayout.LayoutParams(0, -2, 1));
         Button goals = button("目标", false, () -> startActivity(new Intent(this, GoalsActivity.class)));
-        goals.setTag("goals"); goals.setTextSize(13); goals.setMinHeight(0); goals.setPadding(dp(14), dp(5), dp(14), dp(5));
-        LinearLayout.LayoutParams goalParams = new LinearLayout.LayoutParams(-2, dp(36)); goalParams.rightMargin = dp(8); top.addView(goals, goalParams);
+        goals.setTag("goals"); compactHomeButton(goals);
+        LinearLayout.LayoutParams goalParams = new LinearLayout.LayoutParams(-2, dp(34)); goalParams.rightMargin = dp(7); top.addView(goals, goalParams);
         Button timetable = button("课程表", false, () -> startActivity(new Intent(this, TimetableActivity.class)));
-        timetable.setTag("timetable"); timetable.setTextSize(13); timetable.setMinHeight(0); timetable.setPadding(dp(14), dp(5), dp(14), dp(5));
-        LinearLayout.LayoutParams timetableParams = new LinearLayout.LayoutParams(-2, dp(36)); timetableParams.rightMargin = dp(8); top.addView(timetable, timetableParams);
+        timetable.setTag("timetable"); compactHomeButton(timetable);
+        LinearLayout.LayoutParams timetableParams = new LinearLayout.LayoutParams(-2, dp(34)); timetableParams.rightMargin = dp(7); top.addView(timetable, timetableParams);
         Button stats = button("统计", false, () -> startActivity(new Intent(this, StatisticsActivity.class)));
-        stats.setTag("statistics"); stats.setTextSize(13); stats.setMinHeight(0); stats.setPadding(dp(14), dp(5), dp(14), dp(5));
-        top.addView(stats, new LinearLayout.LayoutParams(-2, dp(36))); page.addView(top); gap(10);
+        stats.setTag("statistics"); compactHomeButton(stats);
+        top.addView(stats, new LinearLayout.LayoutParams(-2, dp(34))); page.addView(top); gap(10);
         shownNotifications = scheduler.notificationsAllowed(); shownExact = scheduler.exactAllowed();
         if (!shownNotifications || !shownExact) {
             String warning = !scheduler.notificationsAllowed() ? "通知未开启 · 点此设置提醒权限" : "精确提醒未开启 · 提醒可能延迟";
@@ -201,7 +201,8 @@ public final class MainActivity extends Activity {
         FrameLayout.LayoutParams floating = new FrameLayout.LayoutParams(dp(60), dp(60), Gravity.RIGHT | Gravity.BOTTOM);
         floating.rightMargin = dp(24); floating.bottomMargin = dp(24); screen.addView(add, floating);
     }
-    private String today() { return new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date()); }
+    private void compactHomeButton(Button button) { button.setTextSize(12.5f); button.setMinHeight(0); button.setMinWidth(0); button.setPadding(dp(13), dp(4), dp(13), dp(4)); }
+    private String today() { return new SimpleDateFormat("M月d日", Locale.CHINA).format(new Date()); }
     private void updateTaskTime(Task task, TextView label) {
         boolean overdue = !task.done && task.start <= System.currentTimeMillis();
         String value = (overdue ? "已过开始时间 · " : "") + format(task.start);

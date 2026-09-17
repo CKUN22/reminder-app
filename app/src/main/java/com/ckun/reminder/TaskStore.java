@@ -60,6 +60,13 @@ public final class TaskStore extends SQLiteOpenHelper {
     public boolean hasGeneratedTask(long goalId, long day) {
         try (Cursor c = getReadableDatabase().query("tasks", new String[]{"id"}, "source_goal_id=? AND generated_day=?", new String[]{String.valueOf(goalId), String.valueOf(day)}, null, null, null)) { return c.moveToFirst(); }
     }
+    public List<Task> unfinishedForCourse(long courseId) {
+        List<Task> result = new ArrayList<>();
+        try (Cursor c = getReadableDatabase().query("tasks", null, "source_course_id=? AND done=0", new String[]{String.valueOf(courseId)}, null, null, "start ASC, id ASC")) {
+            while (c.moveToNext()) result.add(read(c));
+        }
+        return result;
+    }
     private Task read(Cursor c) {
         Task t = new Task();
         t.id = c.getLong(0); t.title = c.getString(1); t.note = c.getString(2); t.start = c.getLong(3);

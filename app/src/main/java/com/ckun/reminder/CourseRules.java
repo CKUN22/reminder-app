@@ -12,6 +12,7 @@ public final class CourseRules {
             LocalTime.of(20, 35)
     };
     private CourseRules() {}
+    public static String locationLabel(Course course) { return "@" + (course.location.isEmpty() ? "地点待定" : course.location); }
     public static int weekOf(LocalDate date) { return (int) Math.floorDiv(java.time.temporal.ChronoUnit.DAYS.between(TERM_START, date), 7) + 1; }
     public static LocalDate weekMonday(int week) { return TERM_START.plusWeeks(week - 1L); }
     public static LocalDateTime occurrence(Course course, int week) {
