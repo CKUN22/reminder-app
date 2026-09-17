@@ -49,7 +49,7 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         store = new TaskStore(this); scheduler = new ReminderScheduler(this); exactBefore = scheduler.exactAllowed();
         scheduler.restore();
-        GoalGenerator.ensureToday(this, store, scheduler, System.currentTimeMillis());
+        GoalGenerator.ensureThroughDeadline(this, store, scheduler, System.currentTimeMillis());
         if (state != null) {
             selectedDay = state.getLong("selectedDay", selectedDay); weekMode = state.getBoolean("weekMode");
             if (state.getBoolean("editing")) {
@@ -76,7 +76,7 @@ public final class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         if (scheduler.exactAllowed() != exactBefore) { scheduler.restore(); exactBefore = scheduler.exactAllowed(); }
-        GoalGenerator.ensureToday(this, store, scheduler, System.currentTimeMillis());
+        GoalGenerator.ensureThroughDeadline(this, store, scheduler, System.currentTimeMillis());
         if (!editing) refreshList();
         handler.removeCallbacks(tick);
         handler.postDelayed(tick, 30_000);

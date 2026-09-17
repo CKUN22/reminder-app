@@ -9,5 +9,8 @@ final class GoalRules {
     static long taskTime(long dayStart, int hour, int minute) {
         Calendar time = Calendar.getInstance(); time.setTimeInMillis(dayStart); time.set(Calendar.HOUR_OF_DAY, hour); time.set(Calendar.MINUTE, minute); return time.getTimeInMillis();
     }
+    static long nextDay(long dayStart) {
+        Calendar day = Calendar.getInstance(); day.setTimeInMillis(dayStart); day.add(Calendar.DAY_OF_MONTH, 1); return dayStart(day.getTimeInMillis());
+    }
     static boolean eligible(Goal goal, long dayStart) { return goal.autoAdd && dayStart <= dayStart(goal.deadline); }
 }

@@ -62,8 +62,8 @@ public final class GoalsActivity extends Activity {
         if (draft.dailyTitle.isEmpty()) { daily.setError("请填写每日小目标"); return; }
         if (draft.deadline < GoalRules.dayStart(System.currentTimeMillis())) { Toast.makeText(this, "截止日期不能早于今天", Toast.LENGTH_LONG).show(); return; }
         try (GoalStore store = new GoalStore(this)) { store.save(draft); }
-        try (TaskStore tasks = new TaskStore(this)) { GoalGenerator.ensureToday(this, tasks, new ReminderScheduler(this), System.currentTimeMillis()); }
-        Toast.makeText(this, draft.autoAdd ? "目标已保存，今天的小目标已准备好" : "目标已保存", Toast.LENGTH_SHORT).show(); showList();
+        try (TaskStore tasks = new TaskStore(this)) { GoalGenerator.ensureThroughDeadline(this, tasks, new ReminderScheduler(this), System.currentTimeMillis()); }
+        Toast.makeText(this, draft.autoAdd ? "目标已保存，每日小目标已准备好" : "目标已保存", Toast.LENGTH_SHORT).show(); showList();
     }
     private void confirmDelete() { new AlertDialog.Builder(this).setTitle("删除这个目标？").setMessage("之后不会再生成每日事项，已经生成的待办会保留。").setNegativeButton("保留", null).setPositiveButton("删除", (dialog, which) -> { try (GoalStore store = new GoalStore(this)) { store.delete(draft.id); } showList(); }).show(); }
     private String formatDate(long time) { return new SimpleDateFormat("yyyy年M月d日", Locale.CHINA).format(new Date(time)); }

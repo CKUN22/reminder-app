@@ -10,6 +10,9 @@ public final class GoalRulesTest {
         long start = GoalRules.dayStart(day.getTimeInMillis()); Calendar result = Calendar.getInstance(); result.setTimeInMillis(start);
         check(result.get(Calendar.HOUR_OF_DAY) == 0 && result.get(Calendar.MINUTE) == 0, "normalizes day start");
         result.setTimeInMillis(GoalRules.taskTime(start, 21, 30)); check(result.get(Calendar.HOUR_OF_DAY) == 21 && result.get(Calendar.MINUTE) == 30, "builds daily reminder time");
+        long tomorrow = GoalRules.nextDay(start); result.setTimeInMillis(tomorrow);
+        check(result.get(Calendar.YEAR) == 2026 && result.get(Calendar.MONTH) == Calendar.SEPTEMBER && result.get(Calendar.DAY_OF_MONTH) == 16, "advances to next calendar day");
+        check(result.get(Calendar.HOUR_OF_DAY) == 0, "next day stays normalized");
         Goal goal = new Goal(); goal.autoAdd = true; goal.deadline = start;
         check(GoalRules.eligible(goal, start), "deadline day is included");
         check(!GoalRules.eligible(goal, start + 86400000L), "does not generate after deadline");
