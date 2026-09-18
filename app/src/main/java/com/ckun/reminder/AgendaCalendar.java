@@ -32,6 +32,7 @@ final class AgendaCalendar extends LinearLayout {
     AgendaCalendar(Context context, long selected, boolean week, List<Task> tasks, Selection selection, ModeChange modeChange) {
         super(context); this.selected = selected; this.week = week; this.selection = selection; this.modeChange = modeChange;
         setOrientation(VERTICAL); setTag("agenda-calendar");
+        if (Appearance.glass(context)) setBackground(Appearance.shape(context, 0xffFFFCF7, 24));
         LinearLayout header = new LinearLayout(context); header.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(action("‹", "上一" + (week ? "周" : "月"), () -> move(-1)), new LayoutParams(dp(40), dp(40)));
         TextView month = label(new SimpleDateFormat("yyyy年M月", Locale.CHINA).format(new Date(selected)), 18, INK);
@@ -81,7 +82,7 @@ final class AgendaCalendar extends LinearLayout {
     @Override public boolean dispatchTouchEvent(MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             gestureDownX = event.getRawX(); gestureDownY = event.getRawY(); dragStartProgress = expansionProgress; trackingGesture = true;
-            getParent().requestDisallowInterceptTouchEvent(true);
+            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
         } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE && trackingGesture) {
             if (Math.abs(event.getRawY() - gestureDownY) > Math.abs(event.getRawX() - gestureDownX)) updateDrag(event.getRawY());
         } else if (event.getActionMasked() == MotionEvent.ACTION_UP && trackingGesture) {
@@ -147,7 +148,7 @@ final class AgendaCalendar extends LinearLayout {
                 }).show();
     }
     private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
-    private GradientDrawable shape(int color, int radius) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); return d; }
+    private GradientDrawable shape(int color, int radius) { return Appearance.shape(getContext(), color, radius); }
     private TextView label(String value, int size, int color) { TextView t = new TextView(getContext()); t.setText(value); t.setTextSize(size); t.setTextColor(color); t.setTypeface(Typeface.create("serif", Typeface.NORMAL)); t.setGravity(Gravity.CENTER); return t; }
     private Button action(String value, String description, Runnable run) {
         Button b = new Button(getContext()); b.setText(value); b.setTextSize(13); b.setTextColor(GREEN); b.setAllCaps(false);

@@ -13,12 +13,12 @@ public final class GoalsActivity extends Activity {
     private static final int BG = 0xffFFF8ED, INK = 0xff4A3E35, MUTED = 0xff8E7D70, GREEN = 0xff7C9270, CREAM = 0xffF5EBDD, CARD = 0xffFFFCF7;
     private LinearLayout page; private Goal draft; private EditText title, daily; private Button deadline, time; private CheckBox auto;
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
-    private GradientDrawable shape(int color, int radius) { GradientDrawable drawable = new GradientDrawable(); drawable.setColor(color); drawable.setCornerRadius(dp(radius)); return drawable; }
+    private GradientDrawable shape(int color, int radius) { return Appearance.shape(this, color, radius); }
     private TextView text(String value, int size, int color) { TextView view = new TextView(this); view.setText(value); view.setTextSize(size); view.setTextColor(color); view.setTypeface(Typeface.create("serif", Typeface.NORMAL)); view.setPadding(0, dp(4), 0, dp(4)); return view; }
     private Button button(String value, boolean primary, View.OnClickListener listener) { Button button = new Button(this); button.setText(value); button.setAllCaps(false); button.setTextSize(14); button.setTypeface(Typeface.create("serif", Typeface.NORMAL)); button.setTextColor(primary ? Color.WHITE : GREEN); button.setBackground(shape(primary ? GREEN : CREAM, 22)); button.setOnClickListener(listener); return button; }
     @Override public void onCreate(Bundle state) { super.onCreate(state); showList(); }
     private void shell() {
-        ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.setClipToPadding(false); scroll.setBackgroundColor(BG);
+        ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.setClipToPadding(false); scroll.setBackground(Appearance.background(this, BG));
         page = new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(22), dp(6), dp(22), dp(36)); scroll.addView(page); setContentView(scroll);
         scroll.setOnApplyWindowInsetsListener((view, insets) -> { view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop() + dp(12), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom()); return insets; });
     }

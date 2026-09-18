@@ -151,7 +151,7 @@ public final class StartTimeDialog extends Dialog {
     private int dp(int n) { return Math.round(n * getContext().getResources().getDisplayMetrics().density); }
     private LinearLayout column() { LinearLayout c = new LinearLayout(getContext()); c.setOrientation(LinearLayout.VERTICAL); return c; }
     private LinearLayout.LayoutParams size(int width, int height) { return new LinearLayout.LayoutParams(width < 0 ? width : dp(width), height < 0 ? height : dp(height)); }
-    private GradientDrawable shape(int color, int radius) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); return d; }
+    private GradientDrawable shape(int color, int radius) { return Appearance.shape(getContext(), color, radius); }
     private TextView label(String text, int sp, int color) {
         TextView v = new TextView(getContext()); v.setText(text); v.setTextSize(sp); v.setTextColor(color); v.setGravity(Gravity.CENTER); return v;
     }

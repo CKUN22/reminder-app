@@ -20,6 +20,7 @@ public final class MainActivity extends Activity {
     private static final int CREAM = 0xffF5EBDD, CARD = 0xffFFFCF7;
     private long selectedDay = System.currentTimeMillis();
     private boolean weekMode;
+    private boolean renderedGlass;
     private LinearLayout page;
     private ScrollView scroll;
     private FrameLayout screen;
@@ -77,7 +78,10 @@ public final class MainActivity extends Activity {
         super.onResume();
         if (scheduler.exactAllowed() != exactBefore) { scheduler.restore(); exactBefore = scheduler.exactAllowed(); }
         GoalGenerator.ensureThroughDeadline(this, store, scheduler, System.currentTimeMillis());
-        if (!editing) refreshList();
+        if (!editing) {
+            if (renderedGlass != Appearance.glass(this)) showList();
+            else refreshList();
+        }
         handler.removeCallbacks(tick);
         handler.postDelayed(tick, 30_000);
     }
@@ -95,12 +99,13 @@ public final class MainActivity extends Activity {
     }
     private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
     private GradientDrawable shape(int color, int radius) {
-        GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); return d;
+        return Appearance.shape(this, color, radius);
     }
     private void shell() {
-        scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.setBackgroundColor(BG);
+        renderedGlass = Appearance.glass(this);
+        scroll = new ScrollView(this); scroll.setFillViewport(true);
         page = new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(24), dp(20), dp(24), dp(32));
-        screen = new FrameLayout(this); screen.setBackgroundColor(BG);
+        screen = new FrameLayout(this); screen.setBackground(Appearance.background(this, BG));
         scroll.addView(page); screen.addView(scroll, new FrameLayout.LayoutParams(-1, -1)); setContentView(screen);
         screen.setOnApplyWindowInsetsListener((v, insets) -> {
             v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
@@ -137,7 +142,11 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams timetableParams = new LinearLayout.LayoutParams(-2, dp(34)); timetableParams.rightMargin = dp(4); top.addView(timetable, timetableParams);
         Button stats = button("统计", false, () -> startActivity(new Intent(this, StatisticsActivity.class)));
         stats.setTag("statistics"); compactHomeButton(stats);
-        top.addView(stats, new LinearLayout.LayoutParams(-2, dp(34))); page.addView(top); gap(10);
+        top.addView(stats, new LinearLayout.LayoutParams(-2, dp(34)));
+        Button settings = button("设置", false, () -> startActivity(new Intent(this, SettingsActivity.class)));
+        settings.setTag("settings"); compactHomeButton(settings);
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(-2, dp(34)); settingsParams.leftMargin = dp(4);
+        top.addView(settings, settingsParams); page.addView(top); gap(10);
         shownNotifications = scheduler.notificationsAllowed(); shownExact = scheduler.exactAllowed();
         if (!shownNotifications || !shownExact) {
             String warning = !scheduler.notificationsAllowed() ? "通知未开启 · 点此设置提醒权限" : "精确提醒未开启 · 提醒可能延迟";
@@ -166,6 +175,7 @@ public final class MainActivity extends Activity {
         for (Task t : dayTasks) {
             LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(12), dp(5), dp(12), dp(5)); card.setBackground(shape(CARD, 24));
             card.setTag("task-card-" + t.id);
+            if (Appearance.glass(this)) card.setBackground(null);
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
             int priorityColor = Task.PRIORITY_COLORS[t.priorityIndex()];
             View stripe = new View(this); stripe.setBackground(shape(priorityColor, 3));
@@ -201,7 +211,7 @@ public final class MainActivity extends Activity {
         FrameLayout.LayoutParams floating = new FrameLayout.LayoutParams(dp(60), dp(60), Gravity.RIGHT | Gravity.BOTTOM);
         floating.rightMargin = dp(24); floating.bottomMargin = dp(24); screen.addView(add, floating);
     }
-    private void compactHomeButton(Button button) { button.setTextSize(11); button.setMinHeight(0); button.setMinWidth(0); button.setPadding(dp(8), dp(5), dp(8), dp(5)); }
+    private void compactHomeButton(Button button) { button.setTextSize(11); button.setMinHeight(0); button.setMinWidth(0); button.setMinimumWidth(0); button.setPadding(dp(8), dp(5), dp(8), dp(5)); }
     private String today() { return new SimpleDateFormat("M月d日", Locale.CHINA).format(new Date()); }
     private void updateTaskTime(Task task, TextView label) {
         boolean overdue = !task.done && task.start <= System.currentTimeMillis();

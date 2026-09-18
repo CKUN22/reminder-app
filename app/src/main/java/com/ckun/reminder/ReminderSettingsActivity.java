@@ -26,10 +26,10 @@ public final class ReminderSettingsActivity extends Activity {
     private int[] values(TreeSet<Integer> set) { return set.stream().mapToInt(Integer::intValue).toArray(); }
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); out.putIntArray("reminders", values(selected)); out.putIntArray("options", values(options)); }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
-    private GradientDrawable background(int color) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(18)); return d; }
+    private GradientDrawable background(int color) { return Appearance.shape(this, color, 18); }
     private TextView text(String value, int size) { TextView t = new TextView(this); t.setText(value); t.setTextColor(0xff202020); t.setTextSize(size); t.setGravity(Gravity.CENTER_VERTICAL); return t; }
     private void render() {
-        ScrollView scroll = new ScrollView(this); scroll.setBackgroundColor(0xffF0F1F5);
+        ScrollView scroll = new ScrollView(this); scroll.setBackground(Appearance.background(this, 0xffF0F1F5));
         page = new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(18), dp(12), dp(18), dp(24)); scroll.addView(page); setContentView(scroll);
         scroll.setOnApplyWindowInsetsListener((v, insets) -> { v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom()); return insets; });
         TextView back = text("‹    提醒", 24); back.setTypeface(null, Typeface.BOLD); back.setTag("reminders-back"); back.setContentDescription("返回事项，保留提醒选择"); back.setOnClickListener(v -> finishSelection()); page.addView(back, new LinearLayout.LayoutParams(-1, dp(64)));

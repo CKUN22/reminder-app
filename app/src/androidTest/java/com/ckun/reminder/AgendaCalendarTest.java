@@ -67,6 +67,16 @@ public class AgendaCalendarTest {
                 root.findViewWithTag("agenda-handle").performClick();
                 assertSame("mode toggle must not rebuild and flash the calendar", calendar, root.findViewWithTag("agenda-calendar"));
                 activity.getWindow().getDecorView().findViewWithTag("complete-" + today.id).performClick();
+            });
+            // Completion updates the list only after the exit animation has finished.
+            long deadline = SystemClock.uptimeMillis() + 5000;
+            boolean[] completed = {false};
+            do {
+                instrumentation.runOnMainSync(() -> completed[0] = activity.getWindow().getDecorView().findViewWithTag("task-time-" + today.id) != null);
+                if (completed[0]) break;
+                SystemClock.sleep(50);
+            } while (SystemClock.uptimeMillis() < deadline);
+            instrumentation.runOnMainSync(() -> {
                 assertNotNull(activity.getWindow().getDecorView().findViewWithTag("task-time-" + today.id));
                 assertEquals(.48f, ((View) activity.getWindow().getDecorView().findViewWithTag("task-card-" + today.id).getParent()).getAlpha(), 0f);
                 assertNull(findText(activity.getWindow().getDecorView(), "未完成"));
@@ -88,10 +98,10 @@ public class AgendaCalendarTest {
                 View calendar = activity.getWindow().getDecorView().findViewWithTag("agenda-calendar");
                 View viewport = activity.getWindow().getDecorView().findViewWithTag("calendar-viewport"); int expanded = viewport.getLayoutParams().height;
                 long now = SystemClock.uptimeMillis();
-                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 30, 160, 0));
-                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_MOVE, 30, 90, 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, dp(30), dp(240), 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_MOVE, dp(30), dp(120), 0));
                 assertTrue("calendar height follows the finger", viewport.getLayoutParams().height < expanded);
-                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 80, MotionEvent.ACTION_UP, 30, 40, 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 80, MotionEvent.ACTION_UP, dp(30), dp(20), 0));
             });
             SystemClock.sleep(300); instrumentation.waitForIdleSync();
             instrumentation.runOnMainSync(() -> {
@@ -99,10 +109,10 @@ public class AgendaCalendarTest {
                 View grid = activity.getWindow().getDecorView().findViewWithTag("calendar-grid"); assertTrue(viewport.getLayoutParams().height < grid.getLayoutParams().height);
                 View calendar = activity.getWindow().getDecorView().findViewWithTag("agenda-calendar");
                 long now = SystemClock.uptimeMillis(); int collapsed = viewport.getLayoutParams().height;
-                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 30, 40, 0));
-                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_MOVE, 30, 100, 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, dp(30), dp(20), 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_MOVE, dp(30), dp(120), 0));
                 assertTrue("calendar expands continuously while dragging", viewport.getLayoutParams().height > collapsed);
-                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 80, MotionEvent.ACTION_UP, 30, 160, 0));
+                calendar.dispatchTouchEvent(MotionEvent.obtain(now, now + 80, MotionEvent.ACTION_UP, dp(30), dp(240), 0));
             });
             SystemClock.sleep(300); instrumentation.waitForIdleSync();
             instrumentation.runOnMainSync(() -> {

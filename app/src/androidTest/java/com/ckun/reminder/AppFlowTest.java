@@ -149,7 +149,7 @@ public class AppFlowTest {
             boolean delivered = false;
             while (SystemClock.elapsedRealtime() < deadline) {
                 for (android.service.notification.StatusBarNotification n : manager.getActiveNotifications()) {
-                    if (("task-" + t.id).equals(n.getTag())) delivered = true;
+                    if (("task-" + t.id + "-0").equals(n.getTag())) delivered = true;
                 }
                 if (delivered) break; SystemClock.sleep(100);
             }
@@ -157,7 +157,7 @@ public class AppFlowTest {
             new ReminderReceiver().onReceive(context, new Intent("COMPLETE").putExtra("id", t.id).putExtra("revision", t.revision));
             assertTrue(store.get(t.id).done);
             SystemClock.sleep(200);
-            for (android.service.notification.StatusBarNotification n : manager.getActiveNotifications()) assertNotEquals("task-" + t.id, n.getTag());
+            for (android.service.notification.StatusBarNotification n : manager.getActiveNotifications()) assertNotEquals("task-" + t.id + "-0", n.getTag());
         } finally { scheduler.cancel(t); try (TaskStore store = new TaskStore(context)) { store.delete(t.id); } }
     }
     @Test public void savingOpenEditorDoesNotUndoNotificationCompletion() {

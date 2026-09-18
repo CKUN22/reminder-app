@@ -73,6 +73,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-test.ps1 -Reb
 
 生命周期测试分为重启前写入和重启后读取两阶段，由脚本驱动；直接运行全部设备测试时，该探针测试会跳过。测试仅限专用模拟器，会清理测试数据。
 
+## 手机版外观切换回归（2026-09-18）
+
+- 新增 `AppearanceTest`：验证默认简约、设置切换、重新进入设置保留选择、返回主页双向生效，以及待办编辑、目标、课程表、统计、提醒页面使用毛玻璃背景。
+- 自动保存 `appearance-settings-glass.png`、`appearance-home-glass.png`、`appearance-home-simple.png`，供实际画面对照检查。
+- 日历回归测试等待完成动画结束后验证事项，滑动使用 dp 距离；独立日历视图触摸增加空父视图保护。系统通知测试按当前包含提醒分钟数的通知标识验证到达和取消。
+- 验证结果：`scripts/build.ps1` 通过（JVM 规则、离线检查、APK 构建及 Lint）；Android 35 专用模拟器完整回归 30 项通过。最终顶部布局调整后，外观与日历 8 项定向回归通过，并人工复核两种模式截图。
+
 ## 真机验收清单
 
 模拟器结果不能代替厂商真机的省电策略验证。以下项目仍需在目标手机完成：
