@@ -1,6 +1,18 @@
 # 轻待办
 
-一个离线使用的 Android 待办提醒 MVP，支持 Android 8.0 及以上。
+一个离线使用的待办提醒应用，提供 Android 与 Windows 版本。Android 支持 8.0 及以上；Windows 版面向 Windows 10/11，优先适配 Windows 11。
+
+## Windows 版
+
+Windows 桌面端位于 `windows/`，采用原生 .NET 9 WPF 构建。界面使用 Windows 11 Mica 系统背景、半透明卡片和桌面端侧栏布局，当前包含今日待办、日历日程、课程表、目标、统计、本地持久化与应用运行期间提醒；不包含账号或云同步。
+
+构建、测试并发布：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-build.ps1
+```
+
+输出：`dist/windows/LightTodo.exe`。目标电脑需安装 .NET 9 Desktop Runtime。Windows 端数据保存在 `%LOCALAPPDATA%\LightTodo\data.json`。
 
 ## 已实现
 

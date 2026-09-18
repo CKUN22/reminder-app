@@ -5,3 +5,7 @@ local.properties
 .idea/
 *.iml
 dist/
+.vs/
+windows/**/bin/
+windows/**/obj/
+.tools/dotnet-home/

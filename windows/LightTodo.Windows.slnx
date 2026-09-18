@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="LightTodo.Windows/LightTodo.Windows.csproj" />
+  <Project Path="LightTodo.Windows.Tests/LightTodo.Windows.Tests.csproj" />
+</Solution>
