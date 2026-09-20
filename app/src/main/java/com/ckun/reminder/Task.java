@@ -2,6 +2,8 @@ package com.ckun.reminder;
 
 public class Task {
     public long id, start, revision, completedAt, sourceGoalId, sourceCourseId, generatedDay;
+    public String syncId = "";
+    public long createdAt, updatedAt, deletedAt, syncVersion;
     public String title = "", note = "";
     public int duration;
     public int priority = 3;

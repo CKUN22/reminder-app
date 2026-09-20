@@ -18,4 +18,11 @@ try{var store=new LocalStore(temp);store.Data.Tasks.Add(new(){Title="持久化",
 var envTemp=Path.Combine(Path.GetTempPath(),$"lighttodo-env-test-{Guid.NewGuid():N}.json");
 Environment.SetEnvironmentVariable("LIGHTTODO_DATA_PATH",envTemp);
 try{var store=new LocalStore();store.Data.Tasks.Add(new(){Title="环境路径",Start=now});store.Save();Equal(true,File.Exists(envTemp),"environment data path");}finally{Environment.SetEnvironmentVariable("LIGHTTODO_DATA_PATH",null);if(File.Exists(envTemp))File.Delete(envTemp);}
+var legacyTemp=Path.Combine(Path.GetTempPath(),$"lighttodo-legacy-{Guid.NewGuid():N}.json");
+try{
+    File.WriteAllText(legacyTemp,"{\"Tasks\":[{\"Id\":1,\"Title\":\"旧事项\",\"Start\":\"2026-09-13T10:00:00\"}],\"Goals\":[],\"Courses\":[]}");
+    var migrated=new LocalStore(legacyTemp);var old=migrated.Data.Tasks.Single();
+    Equal(true,Guid.TryParse(old.SyncId,out _),"legacy sync id");Equal(true,old.CreatedAtUtc!=default,"legacy created timestamp");Equal(0L,old.SyncVersion,"legacy sync version");
+    var persisted=new LocalStore(legacyTemp).Data.Tasks.Single();Equal(old.SyncId,persisted.SyncId,"legacy metadata persisted");
+}finally{if(File.Exists(legacyTemp))File.Delete(legacyTemp);}
 Console.WriteLine($"PASS: {assertions} Windows assertions");

@@ -1,7 +1,14 @@
 namespace LightTodo.Windows;
 
 public enum Priority { ImportantUrgent, Urgent, Important, Normal }
-public sealed class TodoItem {
+public abstract class SyncEntity {
+    public string SyncId { get; set; } = Guid.NewGuid().ToString("D");
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? DeletedAtUtc { get; set; }
+    public long SyncVersion { get; set; }
+}
+public sealed class TodoItem : SyncEntity {
     public long Id { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     public string Title { get; set; } = "";
     public string Note { get; set; } = "";
@@ -14,7 +21,7 @@ public sealed class TodoItem {
     public long? GoalId { get; set; }
     public long? CourseId { get; set; }
 }
-public sealed class GoalItem {
+public sealed class GoalItem : SyncEntity {
     public long Id { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     public string Title { get; set; } = "";
     public string DailyTitle { get; set; } = "";
@@ -22,7 +29,7 @@ public sealed class GoalItem {
     public TimeSpan DailyTime { get; set; } = new(21, 30, 0);
     public bool AutoAdd { get; set; } = true;
 }
-public sealed class CourseItem {
+public sealed class CourseItem : SyncEntity {
     public long Id { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     public string Name { get; set; } = "";
     public string Location { get; set; } = "";

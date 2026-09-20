@@ -10,10 +10,21 @@ public sealed class LocalStore {
             ?? Environment.GetEnvironmentVariable("LIGHTTODO_DATA_PATH")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LightTodo", "data.json");
         Data = Load();
-        if (Data.Courses.Count == 0) { SeedCourses(); Save(); }
+        var migrated = NormalizeSyncMetadata();
+        if (Data.Courses.Count == 0) { SeedCourses(); migrated = true; }
+        if (migrated) Save();
     }
     AppData Load() { try { return File.Exists(path) ? JsonSerializer.Deserialize<AppData>(File.ReadAllText(path), options) ?? new() : new(); } catch { return new(); } }
     public void Save() { Directory.CreateDirectory(Path.GetDirectoryName(path)!); var temp = path + ".tmp"; File.WriteAllText(temp, JsonSerializer.Serialize(Data, options)); File.Move(temp, path, true); }
+    bool NormalizeSyncMetadata() {
+        var changed = false;
+        foreach (var entity in Data.Tasks.Cast<SyncEntity>().Concat(Data.Goals).Concat(Data.Courses)) {
+            if (!Guid.TryParse(entity.SyncId, out _)) { entity.SyncId = Guid.NewGuid().ToString("D"); changed = true; }
+            if (entity.CreatedAtUtc == default) { entity.CreatedAtUtc = DateTime.UtcNow; changed = true; }
+            if (entity.UpdatedAtUtc == default) { entity.UpdatedAtUtc = entity.CreatedAtUtc; changed = true; }
+        }
+        return changed;
+    }
     void SeedCourses() {
         string[] names = ["高等数学", "大学英语", "程序设计", "思想道德与法治", "大学体育", "计算机导论"];
         string[] rooms = ["松2105", "博雅楼B203", "信科楼401", "博雅楼A108", "东操场", "信科楼305"];

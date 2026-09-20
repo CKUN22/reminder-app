@@ -20,12 +20,14 @@ public class TaskStoreTest {
         }
         try (TaskStore store = new TaskStore(getContext())) {
             Task t = store.get(id); assertEquals("读书", t.title); assertEquals("第二章", t.note);
+            assertTrue(java.util.UUID.fromString(t.syncId).toString().equals(t.syncId)); assertTrue(t.createdAt > 0); assertTrue(t.updatedAt >= t.createdAt); assertEquals(0, t.deletedAt); assertEquals(0, t.syncVersion);
             assertEquals(0, t.priority); assertEquals(30, t.duration); assertTrue(t.earlyTen); assertFalse(t.done); assertEquals(7, t.sourceGoalId); assertEquals(9, t.sourceCourseId); assertEquals(123000L, t.generatedDay); assertTrue(store.hasGeneratedTask(7, 123000L));
             assertEquals(1, store.unfinishedForCourse(9).size()); assertTrue(store.unfinishedForCourse(8).isEmpty());
             long revision = t.revision; t.title = "散步"; t.start += 86400000; store.save(t);
             assertEquals(revision + 1, store.get(id).revision); assertEquals("散步", store.get(id).title);
             t.done = true; t.completedAt = 123456789L; store.save(t); assertTrue(store.get(id).done); assertEquals(123456789L, store.get(id).completedAt); assertTrue(store.unfinishedForCourse(9).isEmpty());
             store.delete(id); assertNull(store.get(id)); assertEquals(0, store.all().size());
+            try (android.database.Cursor c = store.getReadableDatabase().query("tasks", new String[]{"deleted_at"}, "id=?", new String[]{String.valueOf(id)}, null, null, null)) { assertTrue(c.moveToFirst()); assertTrue(c.getLong(0) > 0); }
         }
     }
     @Test public void testStaleNotificationCannotCompleteEditedTask() {
@@ -45,7 +47,7 @@ public class TaskStoreTest {
             db.execSQL("INSERT INTO tasks VALUES (1, '旧事项', '', 2000000000000, 30, 1, 1, 0, 3)"); db.setVersion(1);
         }
         try (TaskStore store = new TaskStore(getContext())) {
-            Task task = store.get(1); assertEquals(3, task.priority); assertEquals(new java.util.TreeSet<>(java.util.List.of(0, 10, 1440)), task.reminders());
+            Task task = store.get(1); assertEquals(3, task.priority); assertNotNull(java.util.UUID.fromString(task.syncId)); assertTrue(task.createdAt > 0); assertTrue(task.updatedAt >= task.createdAt); assertEquals(new java.util.TreeSet<>(java.util.List.of(0, 10, 1440)), task.reminders());
             task.reminderMinutes = new java.util.TreeSet<>(java.util.List.of(15, 75, 2880)); store.save(task);
         }
         try (TaskStore store = new TaskStore(getContext())) {

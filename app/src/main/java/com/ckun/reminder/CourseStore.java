@@ -6,16 +6,17 @@ import android.database.sqlite.*;
 import java.util.*;
 
 public final class CourseStore extends SQLiteOpenHelper {
-    public CourseStore(Context context) { super(context, "courses.db", null, 2); }
+    public CourseStore(Context context) { super(context, "courses.db", null, 3); }
     @Override public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE courses (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, weekday INTEGER NOT NULL, start_period INTEGER NOT NULL, end_period INTEGER NOT NULL, start_week INTEGER NOT NULL, end_week INTEGER NOT NULL, location TEXT NOT NULL, teacher TEXT NOT NULL, note TEXT NOT NULL, color_index INTEGER NOT NULL)");
+        db.execSQL("CREATE TABLE courses (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, weekday INTEGER NOT NULL, start_period INTEGER NOT NULL, end_period INTEGER NOT NULL, start_week INTEGER NOT NULL, end_week INTEGER NOT NULL, location TEXT NOT NULL, teacher TEXT NOT NULL, note TEXT NOT NULL, color_index INTEGER NOT NULL, sync_id TEXT, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, deleted_at INTEGER NOT NULL DEFAULT 0, sync_version INTEGER NOT NULL DEFAULT 0)");
         seedInitialTimetable(db);
+        backfillSyncIds(db);
     }
-    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { if (oldVersion < 2) seedInitialTimetable(db); }
-    public List<Course> all() { List<Course> result = new ArrayList<>(); try (Cursor c = getReadableDatabase().query("courses", null, null, null, null, null, "weekday,start_period,id")) { while (c.moveToNext()) result.add(read(c)); } return result; }
-    public Course get(long id) { try (Cursor c = getReadableDatabase().query("courses", null, "id=?", new String[]{String.valueOf(id)}, null, null, null)) { return c.moveToFirst() ? read(c) : null; } }
-    public void save(Course c) { ContentValues v = new ContentValues(); v.put("name", c.name); v.put("weekday", c.weekday); v.put("start_period", c.startPeriod); v.put("end_period", c.endPeriod); v.put("start_week", c.startWeek); v.put("end_week", c.endWeek); v.put("location", c.location); v.put("teacher", c.teacher); v.put("note", c.note); v.put("color_index", c.colorIndex); if (c.id == 0) c.id = getWritableDatabase().insertOrThrow("courses", null, v); else getWritableDatabase().update("courses", v, "id=?", new String[]{String.valueOf(c.id)}); }
-    public void delete(long id) { getWritableDatabase().delete("courses", "id=?", new String[]{String.valueOf(id)}); }
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { if (oldVersion < 2) seedInitialTimetable(db); if(oldVersion<3){addSyncColumns(db);backfillSyncIds(db);} }
+    public List<Course> all() { List<Course> result = new ArrayList<>(); try (Cursor c = getReadableDatabase().query("courses", null, "deleted_at=0", null, null, null, "weekday,start_period,id")) { while (c.moveToNext()) result.add(read(c)); } return result; }
+    public Course get(long id) { try (Cursor c = getReadableDatabase().query("courses", null, "id=? AND deleted_at=0", new String[]{String.valueOf(id)}, null, null, null)) { return c.moveToFirst() ? read(c) : null; } }
+    public void save(Course c) { long now=System.currentTimeMillis();if(c.syncId==null||c.syncId.isEmpty())c.syncId=UUID.randomUUID().toString();if(c.createdAt==0)c.createdAt=now;c.updatedAt=now;c.deletedAt=0;ContentValues v = new ContentValues(); v.put("name", c.name); v.put("weekday", c.weekday); v.put("start_period", c.startPeriod); v.put("end_period", c.endPeriod); v.put("start_week", c.startWeek); v.put("end_week", c.endWeek); v.put("location", c.location); v.put("teacher", c.teacher); v.put("note", c.note); v.put("color_index", c.colorIndex);v.put("sync_id",c.syncId);v.put("created_at",c.createdAt);v.put("updated_at",c.updatedAt);v.put("deleted_at",c.deletedAt);v.put("sync_version",c.syncVersion); if (c.id == 0) c.id = getWritableDatabase().insertOrThrow("courses", null, v); else getWritableDatabase().update("courses", v, "id=?", new String[]{String.valueOf(c.id)}); }
+    public void delete(long id) { ContentValues v=new ContentValues();long now=System.currentTimeMillis();v.put("deleted_at",now);v.put("updated_at",now);getWritableDatabase().update("courses",v,"id=?",new String[]{String.valueOf(id)}); }
     private static void seedInitialTimetable(SQLiteDatabase db) {
         Object[][] rows = {
                 {"工程训练",1,1,4,1,16,"工训中心329",5},
@@ -40,5 +41,7 @@ public final class CourseStore extends SQLiteOpenHelper {
                     new Object[]{row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[0],row[1],row[2],row[3],row[4],row[5]});
         }
     }
-    private Course read(Cursor c) { Course v = new Course(); v.id=c.getLong(0); v.name=c.getString(1); v.weekday=c.getInt(2); v.startPeriod=c.getInt(3); v.endPeriod=c.getInt(4); v.startWeek=c.getInt(5); v.endWeek=c.getInt(6); v.location=c.getString(7); v.teacher=c.getString(8); v.note=c.getString(9); v.colorIndex=c.getInt(10); return v; }
+    private Course read(Cursor c) { Course v = new Course(); v.id=c.getLong(0); v.name=c.getString(1); v.weekday=c.getInt(2); v.startPeriod=c.getInt(3); v.endPeriod=c.getInt(4); v.startWeek=c.getInt(5); v.endWeek=c.getInt(6); v.location=c.getString(7); v.teacher=c.getString(8); v.note=c.getString(9); v.colorIndex=c.getInt(10);v.syncId=c.getString(c.getColumnIndexOrThrow("sync_id"));v.createdAt=c.getLong(c.getColumnIndexOrThrow("created_at"));v.updatedAt=c.getLong(c.getColumnIndexOrThrow("updated_at"));v.deletedAt=c.getLong(c.getColumnIndexOrThrow("deleted_at"));v.syncVersion=c.getLong(c.getColumnIndexOrThrow("sync_version")); return v; }
+    private static void addSyncColumns(SQLiteDatabase db){db.execSQL("ALTER TABLE courses ADD COLUMN sync_id TEXT");db.execSQL("ALTER TABLE courses ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0");db.execSQL("ALTER TABLE courses ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0");db.execSQL("ALTER TABLE courses ADD COLUMN deleted_at INTEGER NOT NULL DEFAULT 0");db.execSQL("ALTER TABLE courses ADD COLUMN sync_version INTEGER NOT NULL DEFAULT 0");}
+    private static void backfillSyncIds(SQLiteDatabase db){long now=System.currentTimeMillis();try(Cursor c=db.query("courses",new String[]{"id"},"sync_id IS NULL OR sync_id=''",null,null,null,null)){while(c.moveToNext()){ContentValues v=new ContentValues();v.put("sync_id",UUID.randomUUID().toString());v.put("created_at",now);v.put("updated_at",now);db.update("courses",v,"id=?",new String[]{String.valueOf(c.getLong(0))});}}}
 }
