@@ -70,6 +70,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1
 
 APK 输出：`app/build/outputs/apk/debug/app-debug.apk`。这是开发测试签名版本，尚未配置正式发布签名。
 
+为兼容已经安装的早期测试版，Debug 构建固定使用最初的 `~/.android/debug.keystore`，而不跟随 `ANDROID_USER_HOME` 改变。历史证书 SHA-256 指纹为 `85A1257848AAE3EBBD307E46071E5CB0FEE4DD061A4181064E7DCC16DE131135`。如需在另一台构建机生成可覆盖安装的 APK，必须通过 `LIGHTTODO_KEYSTORE` 指向这张历史证书；不能重新生成签名。
+
 ## 验证
 
 纯 JVM 测试可独立运行，不需要模拟器：

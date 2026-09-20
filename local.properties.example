@@ -2,3 +2,8 @@ sdk.dir=C:\\Android\\Sdk
 # Copy these public client settings from Supabase Project Settings > API.
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-public-anon-key
+# Keep this pointed at the historical signing key to allow in-place upgrades.
+# LIGHTTODO_KEYSTORE=C:\\Users\\you\\.android\\debug.keystore
+# LIGHTTODO_KEYSTORE_PASSWORD=android
+# LIGHTTODO_KEY_ALIAS=androiddebugkey
+# LIGHTTODO_KEY_PASSWORD=android

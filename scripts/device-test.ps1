@@ -17,6 +17,9 @@ function Invoke-Instrumentation {
     if ($text -notmatch 'OK \(' -or $text -match 'FAILURES|INSTRUMENTATION_FAILED') { throw 'Device tests failed' }
 }
 if (-not $LifecycleOnly) {
+    $apksigner = Join-Path $sdkPath 'build-tools\35.0.0\apksigner.bat'
+    $certs = (& $apksigner verify --print-certs 'app/build/outputs/apk/debug/app-debug.apk') -join "`n"
+    if ($certs -notmatch '85a1257848aae3ebbd307e46071e5cb0fee4dd061a4181064e7dcc16de131135') { throw 'APK signing certificate does not match installed upgrade lineage.' }
     Invoke-Adb install -r app/build/outputs/apk/debug/app-debug.apk
     Invoke-Adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
     Invoke-Adb shell pm grant com.ckun.reminder android.permission.POST_NOTIFICATIONS

@@ -10,6 +10,10 @@ $env:GRADLE_USER_HOME = Join-Path $projectRoot '.tools\gradle-home'
 $gradleCommand = if (Test-Path '.tools\gradle-8.11.1\bin\gradle.bat') { '.tools\gradle-8.11.1\bin\gradle.bat' } else { '.\gradlew.bat' }
 & $gradleCommand assembleDebug lintDebug testReminderRules testAgendaRules assembleDebugAndroidTest --console=plain
 if ($LASTEXITCODE -ne 0) { throw 'Android build or validation failed' }
+$apksigner = Join-Path $env:ANDROID_HOME 'build-tools\35.0.0\apksigner.bat'
+$certs = (& $apksigner verify --print-certs 'app\build\outputs\apk\debug\app-debug.apk') -join "`n"
+if ($certs -notmatch '85a1257848aae3ebbd307e46071e5cb0fee4dd061a4181064e7dcc16de131135') { throw 'APK is not signed with the historical upgrade certificate.' }
+Write-Output 'PASS: historical Android signing certificate'
 if ($DeviceTests) {
     & $gradleCommand connectedDebugAndroidTest --console=plain
     if ($LASTEXITCODE -ne 0) { throw 'Device tests failed' }

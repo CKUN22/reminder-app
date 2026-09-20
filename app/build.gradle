@@ -16,6 +16,17 @@ android {
         buildConfigField 'String', 'SUPABASE_ANON_KEY', '"' + localConfig.getProperty('SUPABASE_ANON_KEY', '').replace('\\', '\\\\').replace('"', '\\"') + '"'
     }
     buildFeatures { buildConfig true }
+    signingConfigs {
+        legacyDebug {
+            storeFile file(localConfig.getProperty('LIGHTTODO_KEYSTORE', System.getProperty('user.home') + '/.android/debug.keystore'))
+            storePassword localConfig.getProperty('LIGHTTODO_KEYSTORE_PASSWORD', 'android')
+            keyAlias localConfig.getProperty('LIGHTTODO_KEY_ALIAS', 'androiddebugkey')
+            keyPassword localConfig.getProperty('LIGHTTODO_KEY_PASSWORD', 'android')
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.legacyDebug }
+    }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
