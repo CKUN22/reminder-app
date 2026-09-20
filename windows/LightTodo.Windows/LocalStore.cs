@@ -6,7 +6,9 @@ public sealed class LocalStore {
     readonly JsonSerializerOptions options = new() { WriteIndented = true };
     public AppData Data { get; private set; }
     public LocalStore(string? path = null) {
-        this.path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LightTodo", "data.json");
+        this.path = path
+            ?? Environment.GetEnvironmentVariable("LIGHTTODO_DATA_PATH")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LightTodo", "data.json");
         Data = Load();
         if (Data.Courses.Count == 0) { SeedCourses(); Save(); }
     }
