@@ -44,6 +44,8 @@ Android：复制 `local.properties.example` 中的 `SUPABASE_URL` 和 `SUPABASE_
 
 Android 会用系统 Keystore 加密会话，Windows 使用当前用户的 DPAPI 加密。仓库未配置真实服务时，账户界面会明确显示“尚未配置”，不影响本地功能。
 
+云端同步表结构位于 `supabase/migrations/202609200001_sync_core.sql`，包含用户隔离 RLS、软删除、乐观版本号和全局增量游标。协议说明见 `docs/sync-protocol.md`。当前提交只建立并验证服务端协议，客户端尚不会自动上传本地数据。
+
 范围说明见 [PRODUCT.md](PRODUCT.md)。卸载应用或清除应用数据会删除本地事项，当前版本不提供导出功能。
 
 ## 构建

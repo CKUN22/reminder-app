@@ -29,3 +29,5 @@ $permissions = @($manifest.manifest.'uses-permission' | ForEach-Object { $_.GetA
 if ($permissions -notcontains 'android.permission.INTERNET') { throw 'Account-enabled app must request INTERNET permission' }
 if ($manifest.manifest.application.GetAttribute('allowBackup', $androidNamespace) -ne 'false') { throw 'Cloud backup must be disabled' }
 Write-Output 'PASS: account manifest checks'
+& (Join-Path $projectRoot 'tests\sync-schema-test.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Sync schema contract failed' }
