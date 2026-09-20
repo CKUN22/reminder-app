@@ -1,4 +1,7 @@
 plugins { id 'com.android.application' }
+def localConfig = new Properties()
+def localConfigFile = rootProject.file('local.properties')
+if (localConfigFile.exists()) localConfigFile.withInputStream { localConfig.load(it) }
 android {
     namespace 'com.ckun.reminder'
     compileSdk 35
@@ -9,7 +12,10 @@ android {
         versionCode 18
         versionName '0.3.3'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        buildConfigField 'String', 'SUPABASE_URL', '"' + localConfig.getProperty('SUPABASE_URL', '').replace('\\', '\\\\').replace('"', '\\"') + '"'
+        buildConfigField 'String', 'SUPABASE_ANON_KEY', '"' + localConfig.getProperty('SUPABASE_ANON_KEY', '').replace('\\', '\\\\').replace('"', '\\"') + '"'
     }
+    buildFeatures { buildConfig true }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
@@ -87,3 +93,13 @@ tasks.register('testAgendaRules', JavaExec) {
     mainClass = 'com.ckun.reminder.AgendaRulesTest'
 }
 tasks.named('check') { dependsOn 'testAgendaRules' }
+tasks.register('compileAuthTests', JavaCompile) {
+    source = files('src/main/java/com/ckun/reminder/AuthRules.java', '../tests/AuthRulesTest.java')
+    classpath = files()
+    destinationDirectory = layout.buildDirectory.dir('auth-tests')
+    sourceCompatibility = '17'; targetCompatibility = '17'; options.encoding = 'UTF-8'
+}
+tasks.register('testAuthRules', JavaExec) {
+    dependsOn 'compileAuthTests'; classpath = files(layout.buildDirectory.dir('auth-tests')); mainClass = 'com.ckun.reminder.AuthRulesTest'
+}
+tasks.named('check') { dependsOn 'testAuthRules' }

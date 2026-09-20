@@ -11,10 +11,12 @@ public partial class MainWindow : Window {
     static readonly string[] priorityNames = ["重要且紧急","不重要但紧急","重要不紧急","不重要不紧急"];
     static readonly Color[] priorityColors = [C("#C75C57"),C("#C28A43"),C("#5D83B8"),C("#6F8B78")];
     public MainWindow() { InitializeComponent(); PageSubtitle.Text=DateTime.Now.ToString("yyyy年M月d日 dddd"); }
-    void OnLoaded(object s, RoutedEventArgs e) { ApplyBackdrop(); reminders=new(store); GenerateGoalTasks(); RenderToday(); }
+    void OnLoaded(object s, RoutedEventArgs e) { ApplyBackdrop(); reminders=new(store); GenerateGoalTasks(); RefreshAccountStatus(); RenderToday(); }
     void OnClosing(object? s, System.ComponentModel.CancelEventArgs e) { reminders?.Dispose(); store.Save(); }
     void ApplyBackdrop() { var h=new WindowInteropHelper(this).Handle; int backdrop=2, dark=0; DwmSetWindowAttribute(h,38,ref backdrop,4); DwmSetWindowAttribute(h,20,ref dark,4); }
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd,int attr,ref int value,int size);
+    void Account_Click(object sender,RoutedEventArgs e){new AccountWindow{Owner=this}.ShowDialog();RefreshAccountStatus();}
+    void RefreshAccountStatus(){var session=new WindowsAccountSession();var signedIn=session.IsSignedIn;AccountButton.Content=signedIn?"管理账户":"登录或注册";StorageTitle.Text=signedIn?session.Email:"本地存储";StorageSubtitle.Text=signedIn?"账户已连接，数据同步将在下一阶段启用":"数据仅保存在这台电脑";}
     static Color C(string s)=>(Color)ColorConverter.ConvertFromString(s);
     Border Card(UIElement child, Thickness? margin=null) => new() { Child=child,Background=new SolidColorBrush(C("#72FFFFFF")),BorderBrush=new SolidColorBrush(C("#50FFFFFF")),BorderThickness=new(1),CornerRadius=new(16),Padding=new(18),Margin=margin??new(0,0,0,12),Effect=new System.Windows.Media.Effects.DropShadowEffect{BlurRadius=18,ShadowDepth=2,Opacity=.08} };
     TextBlock Text(string t,double size=14,Brush? color=null,FontWeight? weight=null)=>new(){Text=t,FontSize=size,Foreground=color??(Brush)FindResource("InkBrush"),FontWeight=weight??FontWeights.Normal,TextWrapping=TextWrapping.Wrap};

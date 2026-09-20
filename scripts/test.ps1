@@ -19,9 +19,13 @@ if ($LASTEXITCODE -ne 0) { throw 'Goal tests failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Course test compilation failed' }
 & (Join-Path $javaBin 'java.exe') -cp $testOutput com.ckun.reminder.CourseRulesTest
 if ($LASTEXITCODE -ne 0) { throw 'Course tests failed' }
+& (Join-Path $javaBin 'javac.exe') -encoding UTF-8 -cp $testOutput -d $testOutput (Join-Path $projectRoot 'app\src\main\java\com\ckun\reminder\AuthRules.java') (Join-Path $projectRoot 'tests\AuthRulesTest.java')
+if ($LASTEXITCODE -ne 0) { throw 'Auth test compilation failed' }
+& (Join-Path $javaBin 'java.exe') -cp $testOutput com.ckun.reminder.AuthRulesTest
+if ($LASTEXITCODE -ne 0) { throw 'Auth tests failed' }
 [xml]$manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $projectRoot 'app\src\main\AndroidManifest.xml')
 $androidNamespace = 'http://schemas.android.com/apk/res/android'
 $permissions = @($manifest.manifest.'uses-permission' | ForEach-Object { $_.GetAttribute('name', $androidNamespace) })
-if ($permissions -contains 'android.permission.INTERNET') { throw 'Offline app must not request INTERNET permission' }
+if ($permissions -notcontains 'android.permission.INTERNET') { throw 'Account-enabled app must request INTERNET permission' }
 if ($manifest.manifest.application.GetAttribute('allowBackup', $androidNamespace) -ne 'false') { throw 'Cloud backup must be disabled' }
-Write-Output 'PASS: offline manifest checks'
+Write-Output 'PASS: account manifest checks'

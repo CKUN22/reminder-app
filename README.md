@@ -1,10 +1,10 @@
 # 轻待办
 
-一个离线使用的待办提醒应用，提供 Android 与 Windows 版本。Android 支持 8.0 及以上；Windows 版面向 Windows 10/11，优先适配 Windows 11。
+一个本地优先的待办提醒应用，提供 Android 与 Windows 版本。Android 支持 8.0 及以上；Windows 版面向 Windows 10/11，优先适配 Windows 11。
 
 ## Windows 版
 
-Windows 桌面端位于 `windows/`，采用原生 .NET 9 WPF 构建。界面使用 Windows 11 Mica 系统背景、半透明卡片和桌面端侧栏布局，当前包含今日待办、日历日程、课程表、目标、统计、本地持久化与应用运行期间提醒；不包含账号或云同步。
+Windows 桌面端位于 `windows/`，采用原生 .NET 9 WPF 构建。界面使用 Windows 11 Mica 系统背景、半透明卡片和桌面端侧栏布局，包含今日待办、日历日程、课程表、目标、统计、本地持久化、应用运行期间提醒和邮箱账户入口；数据同步将在下一阶段启用。
 
 构建、测试并发布：
 
@@ -36,7 +36,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-build.ps1
 - 独立提醒子页面，可多选发生时、5／10／15／30 分钟、1／2 小时、1／2／7 天前；支持自定义分钟数和不提醒。已过期的时间不可新增选择。
 - 系统通知打开事项及直接完成；修改、完成或删除后取消旧提醒。
 - SQLite 本地保存，重启恢复未来提醒，通知及精确闹钟权限引导。
-- 无联网权限、无服务器或运行时第三方服务，关闭云备份与设备迁移备份。
+- 账户页支持邮箱注册、登录、验证邮件提示、密码重置和退出；未登录时所有数据继续只保存在本地。
+
+## 账户服务配置
+
+Android：复制 `local.properties.example` 中的 `SUPABASE_URL` 和 `SUPABASE_ANON_KEY` 到不提交 Git 的 `local.properties`。Windows：设置 `LIGHTTODO_SUPABASE_URL` 和 `LIGHTTODO_SUPABASE_ANON_KEY` 环境变量。两者都是 Supabase 项目的公开客户端配置，不要使用 `service_role` 管理员密钥。
+
+Android 会用系统 Keystore 加密会话，Windows 使用当前用户的 DPAPI 加密。仓库未配置真实服务时，账户界面会明确显示“尚未配置”，不影响本地功能。
 
 范围说明见 [PRODUCT.md](PRODUCT.md)。卸载应用或清除应用数据会删除本地事项，当前版本不提供导出功能。
 
@@ -50,7 +56,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-build.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1
 ```
 
-本项目工作目录下已有的 `.tools` 开发工具会被脚本自动识别；该目录不提交到 Git。首次构建可能需要联网下载构建依赖，安装后的应用运行不需要联网。
+本项目工作目录下已有的 `.tools` 开发工具会被脚本自动识别；该目录不提交到 Git。首次构建可能需要联网下载构建依赖；本地功能不依赖网络，账户请求需要联网。
 
 通用 Gradle 命令：
 

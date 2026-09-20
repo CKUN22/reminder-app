@@ -25,4 +25,9 @@ try{
     Equal(true,Guid.TryParse(old.SyncId,out _),"legacy sync id");Equal(true,old.CreatedAtUtc!=default,"legacy created timestamp");Equal(0L,old.SyncVersion,"legacy sync version");
     var persisted=new LocalStore(legacyTemp).Data.Tasks.Single();Equal(old.SyncId,persisted.SyncId,"legacy metadata persisted");
 }finally{if(File.Exists(legacyTemp))File.Delete(legacyTemp);}
+Equal<string?>(null,AccountRules.ValidateEmail("student@example.com"),"valid account email");
+Equal("请输入有效的邮箱地址",AccountRules.ValidateEmail("bad-email"),"invalid account email");
+Equal<string?>(null,AccountRules.ValidatePassword("abc12345"),"valid account password");
+var accountTemp=Path.Combine(Path.GetTempPath(),$"lighttodo-account-{Guid.NewGuid():N}.dat");
+try{var session=new WindowsAccountSession(accountTemp);session.Save(new(true,"ok","student@example.com","access-secret","refresh-secret"));var bytes=File.ReadAllBytes(accountTemp);Equal(false,System.Text.Encoding.UTF8.GetString(bytes).Contains("access-secret"),"account token encrypted");var restored=new WindowsAccountSession(accountTemp);Equal(true,restored.IsSignedIn,"account session restored");Equal("student@example.com",restored.Email,"account email restored");restored.Clear();Equal(false,File.Exists(accountTemp),"account session cleared");}finally{if(File.Exists(accountTemp))File.Delete(accountTemp);}
 Console.WriteLine($"PASS: {assertions} Windows assertions");

@@ -2,13 +2,15 @@ package com.ckun.reminder;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.view.View;
 import android.widget.*;
 
 public final class SettingsActivity extends Activity {
     private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
-    @Override public void onCreate(Bundle state) { super.onCreate(state); render(); }
+    @Override public void onCreate(Bundle state) { super.onCreate(state); }
+    @Override protected void onResume() { super.onResume(); render(); }
     private void render() {
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true);
         scroll.setTag("appearance-settings"); scroll.setBackground(Appearance.background(this, 0xffFFF8ED));
@@ -19,6 +21,10 @@ public final class SettingsActivity extends Activity {
         back.setTextColor(0xff4A3E35); back.setBackground(Appearance.shape(this, 0xffF5EBDD, 22));
         back.setOnClickListener(v -> finish()); page.addView(back, new LinearLayout.LayoutParams(dp(96), dp(48)));
         TextView title = label("设置", 30); title.setTypeface(null, Typeface.BOLD); page.addView(title);
+        page.addView(label("账户与同步", 19));
+        Button account = new Button(this); account.setTag("account-settings"); account.setText(AccountSession.open(this).isSignedIn() ? "已登录 · 管理账户" : "登录或注册");
+        account.setTextColor(0xff4A3E35); account.setBackground(Appearance.shape(this, 0xffFFFCF7, 22));
+        account.setOnClickListener(v -> startActivity(new Intent(this, AccountActivity.class))); page.addView(account, new LinearLayout.LayoutParams(-1, dp(56)));
         page.addView(label("外观模式", 19));
         page.addView(label("选择喜欢的风格，所有页面随心切换。", 14));
         RadioGroup modes = new RadioGroup(this); modes.setTag("appearance-modes");
