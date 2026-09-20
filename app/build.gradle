@@ -9,8 +9,8 @@ android {
         applicationId 'com.ckun.reminder'
         minSdk 26
         targetSdk 35
-        versionCode 18
-        versionName '0.3.3'
+        versionCode 19
+        versionName '0.4.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'String', 'SUPABASE_URL', '"' + localConfig.getProperty('SUPABASE_URL', '').replace('\\', '\\\\').replace('"', '\\"') + '"'
         buildConfigField 'String', 'SUPABASE_ANON_KEY', '"' + localConfig.getProperty('SUPABASE_ANON_KEY', '').replace('\\', '\\\\').replace('"', '\\"') + '"'

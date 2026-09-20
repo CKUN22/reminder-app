@@ -15,6 +15,8 @@ Equal(16,Rules.WeekOf(new DateTime(2026,12,21)),"semester last week");
 var course=new CourseItem{Weekday=DayOfWeek.Monday,StartPeriod=5};Equal(new DateTime(2026,9,14,13,0,0),Rules.CourseOccurrence(course,2),"course occurrence");
 var temp=Path.Combine(Path.GetTempPath(),$"lighttodo-test-{Guid.NewGuid():N}.json");
 try{var store=new LocalStore(temp);store.Data.Tasks.Add(new(){Title="持久化",Start=now});store.Save();var restored=new LocalStore(temp);Equal("持久化",restored.Data.Tasks.Single().Title,"local persistence");}finally{if(File.Exists(temp))File.Delete(temp);}
+var dirtyTemp=Path.Combine(Path.GetTempPath(),$"lighttodo-dirty-{Guid.NewGuid():N}.json");
+try{var store=new LocalStore(dirtyTemp);var item=new TodoItem{Title="待同步",Start=now,SyncDirty=false};store.Data.Tasks.Add(item);store.Save();Equal(true,item.SyncDirty,"local save marks dirty");item.SyncDirty=false;store.Save(false);Equal(false,new LocalStore(dirtyTemp).Data.Tasks.Single(x=>x.Title=="待同步").SyncDirty,"remote save stays clean");}finally{if(File.Exists(dirtyTemp))File.Delete(dirtyTemp);}
 var envTemp=Path.Combine(Path.GetTempPath(),$"lighttodo-env-test-{Guid.NewGuid():N}.json");
 Environment.SetEnvironmentVariable("LIGHTTODO_DATA_PATH",envTemp);
 try{var store=new LocalStore();store.Data.Tasks.Add(new(){Title="环境路径",Start=now});store.Save();Equal(true,File.Exists(envTemp),"environment data path");}finally{Environment.SetEnvironmentVariable("LIGHTTODO_DATA_PATH",null);if(File.Exists(envTemp))File.Delete(envTemp);}

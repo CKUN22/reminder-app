@@ -12,10 +12,10 @@ public sealed class LocalStore {
         Data = Load();
         var migrated = NormalizeSyncMetadata();
         if (Data.Courses.Count == 0) { SeedCourses(); migrated = true; }
-        if (migrated) Save();
+        if (migrated) Save(false);
     }
     AppData Load() { try { return File.Exists(path) ? JsonSerializer.Deserialize<AppData>(File.ReadAllText(path), options) ?? new() : new(); } catch { return new(); } }
-    public void Save() { Directory.CreateDirectory(Path.GetDirectoryName(path)!); var temp = path + ".tmp"; File.WriteAllText(temp, JsonSerializer.Serialize(Data, options)); File.Move(temp, path, true); }
+    public void Save(bool markDirty = true) { if(markDirty){var now=DateTime.UtcNow;foreach(var entity in Data.Tasks.Cast<SyncEntity>().Concat(Data.Goals).Concat(Data.Courses).Where(x=>x.DeletedAtUtc==null)){entity.UpdatedAtUtc=now;entity.SyncDirty=true;}}Directory.CreateDirectory(Path.GetDirectoryName(path)!); var temp = path + ".tmp"; File.WriteAllText(temp, JsonSerializer.Serialize(Data, options)); File.Move(temp, path, true); }
     bool NormalizeSyncMetadata() {
         var changed = false;
         foreach (var entity in Data.Tasks.Cast<SyncEntity>().Concat(Data.Goals).Concat(Data.Courses)) {

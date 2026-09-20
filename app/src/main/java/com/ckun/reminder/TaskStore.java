@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TaskStore extends SQLiteOpenHelper {
-    public TaskStore(Context context) { super(context, "tasks.db", null, 7); }
+    public TaskStore(Context context) { super(context, "tasks.db", null, 8); }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, note TEXT NOT NULL, start INTEGER NOT NULL, duration INTEGER NOT NULL, ten INTEGER NOT NULL, day INTEGER NOT NULL, done INTEGER NOT NULL, revision INTEGER NOT NULL)");
         db.execSQL("ALTER TABLE tasks ADD COLUMN reminder_offsets TEXT");
@@ -19,6 +19,7 @@ public final class TaskStore extends SQLiteOpenHelper {
         db.execSQL("ALTER TABLE tasks ADD COLUMN generated_day INTEGER NOT NULL DEFAULT 0");
         db.execSQL("ALTER TABLE tasks ADD COLUMN source_course_id INTEGER NOT NULL DEFAULT 0");
         addSyncColumns(db, "tasks");
+        db.execSQL("ALTER TABLE tasks ADD COLUMN sync_dirty INTEGER NOT NULL DEFAULT 1");
     }
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) db.execSQL("ALTER TABLE tasks ADD COLUMN reminder_offsets TEXT");
@@ -33,6 +34,7 @@ public final class TaskStore extends SQLiteOpenHelper {
         }
         if (oldVersion < 6) db.execSQL("ALTER TABLE tasks ADD COLUMN source_course_id INTEGER NOT NULL DEFAULT 0");
         if (oldVersion < 7) addSyncColumns(db, "tasks");
+        if (oldVersion < 8) db.execSQL("ALTER TABLE tasks ADD COLUMN sync_dirty INTEGER NOT NULL DEFAULT 1");
     }
     public List<Task> all() {
         List<Task> result = new ArrayList<>();
@@ -60,10 +62,11 @@ public final class TaskStore extends SQLiteOpenHelper {
         v.put("completed_at", t.completedAt);
         v.put("source_goal_id", t.sourceGoalId); v.put("source_course_id", t.sourceCourseId); v.put("generated_day", t.generatedDay);
         putSyncValues(v, t.syncId, t.createdAt, t.updatedAt, t.deletedAt, t.syncVersion);
+        v.put("sync_dirty", 1);
         if (t.id == 0) t.id = getWritableDatabase().insertOrThrow("tasks", null, v);
         else getWritableDatabase().update("tasks", v, "id=?", new String[]{String.valueOf(t.id)});
     }
-    public void delete(long id) { ContentValues v = new ContentValues(); long now = System.currentTimeMillis(); v.put("deleted_at", now); v.put("updated_at", now); getWritableDatabase().update("tasks", v, "id=?", new String[]{String.valueOf(id)}); }
+    public void delete(long id) { ContentValues v = new ContentValues(); long now = System.currentTimeMillis(); v.put("deleted_at", now); v.put("updated_at", now); v.put("sync_dirty",1); getWritableDatabase().update("tasks", v, "id=?", new String[]{String.valueOf(id)}); }
     public boolean hasGeneratedTask(long goalId, long day) {
         try (Cursor c = getReadableDatabase().query("tasks", new String[]{"id"}, "source_goal_id=? AND generated_day=? AND deleted_at=0", new String[]{String.valueOf(goalId), String.valueOf(day)}, null, null, null)) { return c.moveToFirst(); }
     }

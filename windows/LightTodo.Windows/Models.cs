@@ -7,6 +7,7 @@ public abstract class SyncEntity {
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAtUtc { get; set; }
     public long SyncVersion { get; set; }
+    public bool SyncDirty { get; set; } = true;
 }
 public sealed class TodoItem : SyncEntity {
     public long Id { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

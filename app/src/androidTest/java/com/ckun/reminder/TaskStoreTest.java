@@ -21,6 +21,7 @@ public class TaskStoreTest {
         try (TaskStore store = new TaskStore(getContext())) {
             Task t = store.get(id); assertEquals("读书", t.title); assertEquals("第二章", t.note);
             assertTrue(java.util.UUID.fromString(t.syncId).toString().equals(t.syncId)); assertTrue(t.createdAt > 0); assertTrue(t.updatedAt >= t.createdAt); assertEquals(0, t.deletedAt); assertEquals(0, t.syncVersion);
+            try (android.database.Cursor row = store.getReadableDatabase().query("tasks", new String[]{"sync_dirty"}, "id=?", new String[]{String.valueOf(id)}, null, null, null)) { assertTrue(row.moveToFirst()); assertEquals(1, row.getInt(0)); }
             assertEquals(0, t.priority); assertEquals(30, t.duration); assertTrue(t.earlyTen); assertFalse(t.done); assertEquals(7, t.sourceGoalId); assertEquals(9, t.sourceCourseId); assertEquals(123000L, t.generatedDay); assertTrue(store.hasGeneratedTask(7, 123000L));
             assertEquals(1, store.unfinishedForCourse(9).size()); assertTrue(store.unfinishedForCourse(8).isEmpty());
             long revision = t.revision; t.title = "散步"; t.start += 86400000; store.save(t);

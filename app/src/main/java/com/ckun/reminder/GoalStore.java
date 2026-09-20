@@ -6,9 +6,9 @@ import android.database.sqlite.*;
 import java.util.*;
 
 public final class GoalStore extends SQLiteOpenHelper {
-    GoalStore(Context context) { super(context, "goals.db", null, 2); }
-    @Override public void onCreate(SQLiteDatabase db) { db.execSQL("CREATE TABLE goals (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, deadline INTEGER NOT NULL, daily_title TEXT NOT NULL, hour INTEGER NOT NULL, minute INTEGER NOT NULL, auto_add INTEGER NOT NULL, sync_id TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, deleted_at INTEGER NOT NULL DEFAULT 0, sync_version INTEGER NOT NULL DEFAULT 0)"); }
-    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { if (oldVersion < 2) addSyncColumns(db); }
+    GoalStore(Context context) { super(context, "goals.db", null, 3); }
+    @Override public void onCreate(SQLiteDatabase db) { db.execSQL("CREATE TABLE goals (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, deadline INTEGER NOT NULL, daily_title TEXT NOT NULL, hour INTEGER NOT NULL, minute INTEGER NOT NULL, auto_add INTEGER NOT NULL, sync_id TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, deleted_at INTEGER NOT NULL DEFAULT 0, sync_version INTEGER NOT NULL DEFAULT 0, sync_dirty INTEGER NOT NULL DEFAULT 1)"); }
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { if (oldVersion < 2) addSyncColumns(db); if(oldVersion<3)db.execSQL("ALTER TABLE goals ADD COLUMN sync_dirty INTEGER NOT NULL DEFAULT 1"); }
     List<Goal> all() {
         List<Goal> result = new ArrayList<>();
         try (Cursor cursor = getReadableDatabase().query("goals", null, "deleted_at=0", null, null, null, "deadline ASC, id ASC")) { while (cursor.moveToNext()) result.add(read(cursor)); }
@@ -22,9 +22,10 @@ public final class GoalStore extends SQLiteOpenHelper {
         ContentValues values = new ContentValues(); values.put("title", goal.title); values.put("deadline", goal.deadline); values.put("daily_title", goal.dailyTitle);
         values.put("hour", goal.hour); values.put("minute", goal.minute); values.put("auto_add", goal.autoAdd ? 1 : 0);
         putSync(values,goal);
+        values.put("sync_dirty",1);
         if (goal.id == 0) goal.id = getWritableDatabase().insertOrThrow("goals", null, values); else getWritableDatabase().update("goals", values, "id=?", new String[]{String.valueOf(goal.id)});
     }
-    void delete(long id) { ContentValues v=new ContentValues();long now=System.currentTimeMillis();v.put("deleted_at",now);v.put("updated_at",now);getWritableDatabase().update("goals",v,"id=?",new String[]{String.valueOf(id)}); }
+    void delete(long id) { ContentValues v=new ContentValues();long now=System.currentTimeMillis();v.put("deleted_at",now);v.put("updated_at",now);v.put("sync_dirty",1);getWritableDatabase().update("goals",v,"id=?",new String[]{String.valueOf(id)}); }
     private Goal read(Cursor cursor) {
         Goal goal = new Goal(); goal.id = cursor.getLong(cursor.getColumnIndexOrThrow("id")); goal.title = cursor.getString(cursor.getColumnIndexOrThrow("title"));
         goal.deadline = cursor.getLong(cursor.getColumnIndexOrThrow("deadline")); goal.dailyTitle = cursor.getString(cursor.getColumnIndexOrThrow("daily_title"));
