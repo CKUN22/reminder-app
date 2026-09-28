@@ -2,7 +2,13 @@ name: Supabase activity
 on:
   schedule:
     - cron: '23 3 * * *'
+    - cron: '37 4 1 * *'
   workflow_dispatch:
+    inputs:
+      test_repository_heartbeat:
+        description: 'Also verify the monthly repository activity commit'
+        type: boolean
+        default: false
 permissions: {}
 jobs:
   keepalive:
@@ -26,3 +32,17 @@ jobs:
           done
           echo 'Supabase keepalive query failed' >&2
           exit 1
+  keep-schedule-active:
+    if: (github.event_name == 'schedule' && github.event.schedule == '37 4 1 * *') || (github.event_name == 'workflow_dispatch' && inputs.test_repository_heartbeat)
+    needs: keepalive
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record repository activity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --allow-empty -m 'chore: keep scheduled Supabase activity enabled'
+          git push origin HEAD:${{ github.event.repository.default_branch }}

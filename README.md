@@ -46,7 +46,7 @@ Android 会用系统 Keystore 加密会话，Windows 使用当前用户的 DPAPI
 
 云端同步表结构位于 `supabase/migrations/202609200001_sync_core.sql`，包含用户隔离 RLS、软删除、乐观版本号和全局增量游标。协议说明见 `docs/sync-protocol.md`。Android 与 Windows 的账户页提供“立即同步”，会先合并远端变化，再上传本地待同步记录；断网时本地功能不受影响，下次可重试。
 
-免费 Supabase 项目的保活配置：先在 Supabase Dashboard 恢复已暂停的项目，并执行 `supabase/migrations/202609280001_keepalive.sql`。在 GitHub 仓库 Actions variables 中设置 `SUPABASE_URL`（如 `https://项目ID.supabase.co`）及 `SUPABASE_PUBLISHABLE_KEY`（Supabase Project Settings → API Keys 中的公开密钥）；不要使用 `service_role` 或 secret 管理员密钥。将 `.github/workflows/supabase-keepalive.yml` 合并到 GitHub 默认分支后，在 Actions 页面手动运行一次 **Supabase activity**，确认查询成功。此后工作流每天 UTC 03:23 发出一次只读数据库请求；GitHub 定时任务可能延迟或漏跑，公开仓库 60 天无仓库活动时会自动停用定时任务，应查看 Actions 失败通知与运行记录。保活不能自动恢复已经暂停的项目，也不能保证免费项目永不暂停。
+免费 Supabase 项目的保活配置：先在 Supabase Dashboard 恢复已暂停的项目，并执行 `supabase/migrations/202609280001_keepalive.sql`。在 GitHub 仓库 Actions variables 中设置 `SUPABASE_URL`（如 `https://项目ID.supabase.co`）及 `SUPABASE_PUBLISHABLE_KEY`（Supabase Project Settings → API Keys 中的公开密钥）；不要使用 `service_role` 或 secret 管理员密钥。将 `.github/workflows/supabase-keepalive.yml` 合并到 GitHub 默认分支后，在 Actions 页面手动运行一次 **Supabase activity**，确认查询成功。此后工作流每天 UTC 03:23 发出一次只读数据库请求，并在每月 1 日 UTC 04:37 成功查询后创建一次空提交，以免公开仓库因 60 天无提交而停用定时任务。GitHub 定时任务仍可能延迟或漏跑，应查看 Actions 失败通知与运行记录。保活不能自动恢复已经暂停的项目，也不能保证免费项目永不暂停。
 
 首次成功同步会把本机数据绑定到当前邮箱，避免退出后误把同一份本地数据上传到另一个账户。跨账户迁移暂不自动执行。同步冲突采用确定性本地优先：先取得远端新版本作为基线，再以本机尚未上传的修改提交新版本，并显示合并冲突数量。
 
