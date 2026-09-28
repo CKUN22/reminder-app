@@ -12,13 +12,12 @@ jobs:
       - name: Query project database
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY"
+          test -n "$SUPABASE_URL" && test -n "$SUPABASE_PUBLISHABLE_KEY"
           for attempt in 1 2 3; do
             if curl --fail --silent --show-error --max-time 20 \
-              --header "apikey: $SUPABASE_ANON_KEY" \
-              --header "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
               --header 'Accept: application/json' \
               "$SUPABASE_URL/rest/v1/project_keepalive?id=eq.1&select=id" | grep -q '"id":1'; then
               exit 0
