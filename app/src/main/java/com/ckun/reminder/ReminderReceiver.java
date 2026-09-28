@@ -19,7 +19,7 @@ public final class ReminderReceiver extends BroadcastReceiver {
             if (!t.reminders().contains(kind)) return;
             // A queued broadcast from a replaced alarm must not fire before the new time.
             if (System.currentTimeMillis() < t.start - kind * 60_000L) return;
-            if (!scheduler.notificationsAllowed()) return;
+            if (!scheduler.notificationsAllowed(t)) return;
             Intent open = new Intent(context, MainActivity.class).setData(Uri.parse("qingdan://task/" + t.id)).putExtra("id", t.id);
             PendingIntent content = PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             Intent complete = new Intent(context, ReminderReceiver.class).setAction("COMPLETE")
@@ -27,10 +27,13 @@ public final class ReminderReceiver extends BroadcastReceiver {
             PendingIntent action = PendingIntent.getBroadcast(context, 0, complete, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             String prefix = kind == 0 ? "现在开始" : ReminderRules.reminderLabel(kind) + "提醒";
             String time = new SimpleDateFormat("M月d日 HH:mm", Locale.CHINA).format(new Date(t.start));
-            Notification notification = new Notification.Builder(context, ReminderScheduler.CHANNEL)
+            boolean important = ReminderRules.isImportant(t);
+            Notification notification = new Notification.Builder(context, ReminderScheduler.channelFor(t))
                     .setSmallIcon(R.drawable.ic_notification).setContentTitle(t.title)
                     .setContentText(prefix + " · " + time).setStyle(new Notification.BigTextStyle().bigText(prefix + " · " + time + (t.note.isEmpty() ? "" : "\n" + t.note)))
                     .setContentIntent(content).setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
+                    .setPriority(important ? Notification.PRIORITY_MAX : Notification.PRIORITY_HIGH)
+                    .setVisibility(important ? Notification.VISIBILITY_PUBLIC : Notification.VISIBILITY_PRIVATE)
                     .addAction(new Notification.Action.Builder(null, "完成", action).build()).build();
             try { context.getSystemService(NotificationManager.class).notify(ReminderScheduler.notificationTag(t.id, kind), 0, notification); }
             catch (SecurityException ignored) { /* Permission can be revoked between check and delivery. */ }

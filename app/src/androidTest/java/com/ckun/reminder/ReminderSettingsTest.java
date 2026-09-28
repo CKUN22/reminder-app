@@ -14,6 +14,22 @@ import java.util.*;
 import java.io.*;
 
 public class ReminderSettingsTest {
+    @Test public void importantTasksUseASeparateStrongChannel() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        new ReminderScheduler(context);
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        NotificationChannel important = manager.getNotificationChannel(ReminderScheduler.IMPORTANT_CHANNEL);
+        NotificationChannel normal = manager.getNotificationChannel(ReminderScheduler.CHANNEL);
+        assertNotNull(important);
+        assertNotNull(normal);
+        assertEquals(NotificationManager.IMPORTANCE_DEFAULT, normal.getImportance());
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, important.getImportance());
+        assertTrue(important.shouldVibrate());
+        Task task = new Task();
+        task.priority = 0; assertEquals(ReminderScheduler.IMPORTANT_CHANNEL, ReminderScheduler.channelFor(task));
+        task.priority = 2; assertEquals(ReminderScheduler.IMPORTANT_CHANNEL, ReminderScheduler.channelFor(task));
+        task.priority = 1; assertEquals(ReminderScheduler.CHANNEL, ReminderScheduler.channelFor(task));
+    }
     @Test public void separateReminderKindsUseSeparateNotificationTags() {
         assertNotEquals(ReminderScheduler.notificationTag(42, 0), ReminderScheduler.notificationTag(42, 5));
         assertEquals("task-42-0", ReminderScheduler.notificationTag(42, 0));

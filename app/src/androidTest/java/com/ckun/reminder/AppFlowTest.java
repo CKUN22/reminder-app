@@ -14,6 +14,21 @@ import java.io.FileOutputStream;
 import java.util.*;
 
 public class AppFlowTest {
+    @Test public void homeToolbarShowsShortTimetableLabelAndWiderButtons() {
+        Activity activity = instrumentation.startActivitySync(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        try {
+            instrumentation.runOnMainSync(() -> {
+                View root = activity.getWindow().getDecorView();
+                String[] tags = {"goals", "timetable", "statistics", "settings"};
+                for (String tag : tags) {
+                    Button button = root.findViewWithTag(tag);
+                    assertNotNull(button);
+                    assertTrue(button.getPaddingLeft() >= Math.round(11 * context.getResources().getDisplayMetrics().density));
+                }
+                assertEquals("课表", ((Button) root.findViewWithTag("timetable")).getText().toString());
+            });
+        } finally { instrumentation.runOnMainSync(activity::finish); }
+    }
     @Test public void backReturnsDirectlyWithoutSavingDraft() {
         Activity activity = instrumentation.startActivitySync(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         try {

@@ -6,21 +6,35 @@ import android.net.Uri;
 import android.os.Build;
 
 public final class ReminderScheduler {
-    public static final String CHANNEL = "task_reminders";
+    public static final String CHANNEL = "task_reminders_normal_v1";
+    public static final String IMPORTANT_CHANNEL = "important_task_reminders_v1";
     private final Context context;
     private final AlarmManager alarms;
     public ReminderScheduler(Context context) {
         this.context = context.getApplicationContext();
         alarms = context.getSystemService(AlarmManager.class);
-        NotificationChannel channel = new NotificationChannel(CHANNEL, "待办提醒", NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel channel = new NotificationChannel(CHANNEL, "普通事项提醒", NotificationManager.IMPORTANCE_DEFAULT);
         channel.setDescription("事项开始及提前提醒");
         context.getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        NotificationChannel important = new NotificationChannel(IMPORTANT_CHANNEL, "重要事项提醒", NotificationManager.IMPORTANCE_HIGH);
+        important.setDescription("重要且紧急、重要不紧急事项的强提醒");
+        important.enableVibration(true);
+        important.setVibrationPattern(new long[]{0, 400, 180, 400, 180, 600});
+        important.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        context.getSystemService(NotificationManager.class).createNotificationChannel(important);
     }
     public boolean exactAllowed() { return Build.VERSION.SDK_INT < 31 || alarms.canScheduleExactAlarms(); }
     public boolean notificationsAllowed() {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
-        return manager.areNotificationsEnabled() && manager.getNotificationChannel(CHANNEL).getImportance() != NotificationManager.IMPORTANCE_NONE;
+        return manager.areNotificationsEnabled() &&
+                (manager.getNotificationChannel(CHANNEL).getImportance() != NotificationManager.IMPORTANCE_NONE ||
+                 manager.getNotificationChannel(IMPORTANT_CHANNEL).getImportance() != NotificationManager.IMPORTANCE_NONE);
     }
+    public boolean notificationsAllowed(Task task) {
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        return manager.areNotificationsEnabled() && manager.getNotificationChannel(channelFor(task)).getImportance() != NotificationManager.IMPORTANCE_NONE;
+    }
+    public static String channelFor(Task task) { return ReminderRules.isImportant(task) ? IMPORTANT_CHANNEL : CHANNEL; }
     private PendingIntent show(Task t, int kind) {
         Intent intent = new Intent(context, MainActivity.class)
                 .setData(Uri.parse("qingdan://task/" + t.id + "/" + kind)).putExtra("id", t.id);

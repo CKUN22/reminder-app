@@ -31,3 +31,5 @@ if ($manifest.manifest.application.GetAttribute('allowBackup', $androidNamespace
 Write-Output 'PASS: account manifest checks'
 & (Join-Path $projectRoot 'tests\sync-schema-test.ps1')
 if ($LASTEXITCODE -ne 0) { throw 'Sync schema contract failed' }
+& (Join-Path $projectRoot 'tests\keepalive-test.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Keepalive contract failed' }

@@ -13,6 +13,10 @@ public final class ReminderRulesTest {
     public static void main(String[] args) {
         long now = Instant.parse("2026-09-13T10:00:00Z").toEpochMilli();
         Task t = new Task(); t.title = "读书"; t.start = now + 2 * 86400000L; t.earlyTen = true; t.earlyDay = true;
+        t.priority = 0; equal(true, ReminderRules.isImportant(t));
+        t.priority = 1; equal(false, ReminderRules.isImportant(t));
+        t.priority = 2; equal(true, ReminderRules.isImportant(t));
+        t.priority = 3; equal(false, ReminderRules.isImportant(t));
         equal(List.of(0, 10, 1440), ReminderRules.pendingMinutes(t, now));
         t.start = now + 600000L;
         equal(List.of(0), ReminderRules.pendingMinutes(t, now)); // Equality is already expired.

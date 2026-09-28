@@ -1,0 +1,29 @@
+name: Supabase activity
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query project database
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY"
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --max-time 20 \
+              --header "apikey: $SUPABASE_ANON_KEY" \
+              --header "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              --header 'Accept: application/json' \
+              "$SUPABASE_URL/rest/v1/project_keepalive?id=eq.1&select=id" | grep -q '"id":1'; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Supabase keepalive query failed' >&2
+          exit 1

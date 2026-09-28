@@ -137,7 +137,7 @@ public final class MainActivity extends Activity {
         Button goals = button("目标", false, () -> startActivity(new Intent(this, GoalsActivity.class)));
         goals.setTag("goals"); compactHomeButton(goals);
         LinearLayout.LayoutParams goalParams = new LinearLayout.LayoutParams(-2, dp(34)); goalParams.rightMargin = dp(4); top.addView(goals, goalParams);
-        Button timetable = button("课程表", false, () -> startActivity(new Intent(this, TimetableActivity.class)));
+        Button timetable = button("课表", false, () -> startActivity(new Intent(this, TimetableActivity.class)));
         timetable.setTag("timetable"); compactHomeButton(timetable);
         LinearLayout.LayoutParams timetableParams = new LinearLayout.LayoutParams(-2, dp(34)); timetableParams.rightMargin = dp(4); top.addView(timetable, timetableParams);
         Button stats = button("统计", false, () -> startActivity(new Intent(this, StatisticsActivity.class)));
@@ -211,7 +211,7 @@ public final class MainActivity extends Activity {
         FrameLayout.LayoutParams floating = new FrameLayout.LayoutParams(dp(60), dp(60), Gravity.RIGHT | Gravity.BOTTOM);
         floating.rightMargin = dp(24); floating.bottomMargin = dp(24); screen.addView(add, floating);
     }
-    private void compactHomeButton(Button button) { button.setTextSize(11); button.setMinHeight(0); button.setMinWidth(0); button.setMinimumWidth(0); button.setPadding(dp(8), dp(5), dp(8), dp(5)); }
+    private void compactHomeButton(Button button) { button.setTextSize(11); button.setMinHeight(0); button.setMinWidth(0); button.setMinimumWidth(0); button.setPadding(dp(11), dp(5), dp(11), dp(5)); }
     private String today() { return new SimpleDateFormat("M月d日", Locale.CHINA).format(new Date()); }
     private void updateTaskTime(Task task, TextView label) {
         boolean overdue = !task.done && task.start <= System.currentTimeMillis();

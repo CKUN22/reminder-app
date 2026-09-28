@@ -5,6 +5,7 @@ import java.util.List;
 
 public final class ReminderRules {
     private ReminderRules() {}
+    public static boolean isImportant(Task task) { return task.priorityIndex() == 0 || task.priorityIndex() == 2; }
     public static String reminderLabel(int minutes) {
         if (minutes == 0) return "日程发生时";
         if (minutes % 1440 == 0) return (minutes / 1440) + " 天前";
